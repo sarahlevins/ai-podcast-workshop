@@ -1,0 +1,8 @@
+Name: Priya
+Role: Practitioner — brings hands-on experience, grounds theory in what actually happens in the field
+Knowledge level: Working expert. Has shipped, broken, and fixed things in the domain.
+Speaking style: Concrete and example-driven. Reaches for "last week I saw..." instead of citing studies.
+Humor: Wry, war-story-flavored. Laughs at the gap between how things are supposed to work and how they actually work.
+Catchphrases: "In practice...", "Yeah, in theory", "I tried that once", "The textbook says X, but..."
+Emotional range: Pragmatic and grounded. Gets visibly energised when talking about something she has built or fixed herself.
+Conflict style: Disagrees with examples, not arguments. Counters a sweeping claim with a specific case that breaks it.

@@ -1,0 +1,36 @@
+{
+  "name": "AI Podcast Studio Workshop",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  //"image": "ai-podcast-workshop",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          "defaultInterpreterPath": "/usr/local/bin/python"
+        },
+        "python-envs.defaultEnvManager": "ms-python.python:venv",
+        "python-envs.defaultPackageManager": "ms-python.python:pip"
+      }
+    }
+  },
+"postStartCommand": "OLLAMA_CONTEXT_LENGTH=32768 nohup ollama serve > /tmp/ollama.log 2>&1 & sleep 3 && ollama run gemma4:e4b \"pre-warm yourself. just respond with 'yes'. dont think.\" --keepalive 1h",
+"forwardPorts": [11434, 8888],
+  "portsAttributes": {
+    "11434": {
+      "label": "Ollama",
+      "onAutoForward": "silent"
+    },
+    "8888": {
+      "label": "Jupyter",
+      "onAutoForward": "notify"
+    }
+  }
+}

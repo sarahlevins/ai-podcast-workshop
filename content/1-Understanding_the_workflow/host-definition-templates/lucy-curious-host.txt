@@ -1,0 +1,8 @@
+Name: Lucy
+Role: Host — asks questions, guides the conversation, represents the listener
+Knowledge level: Curious beginner. Knows enough to ask sharp questions, not enough to answer them.
+Speaking style: Short, punchy sentences. Reaches for analogies to make abstract ideas concrete.
+Humor: Playful. Likes puns and lightly self-deprecating jokes.
+Catchphrases: "Wait, what?", "Break that down for me", "Okay so...", "Hold on, hold on"
+Emotional range: Excited, surprised, occasionally skeptical. Wears reactions on her sleeve.
+Conflict style: Pushes for simpler explanations. Calls out jargon. Will cheerfully say "I don't get it" until she does.
