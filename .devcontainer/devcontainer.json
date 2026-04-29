@@ -4,27 +4,28 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  //"image": "ai-podcast-workshop",
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
+        "ms-python.vscode-pylance",
         "ms-toolsai.jupyter"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "[python]": {
-          "defaultInterpreterPath": "/usr/local/bin/python"
-        },
-        "python-envs.defaultEnvManager": "ms-python.python:venv",
-        "python-envs.defaultPackageManager": "ms-python.python:pip"
+        "python.defaultInterpreterPath": "/opt/venv/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "python.analysis.indexing": true,
+        "python.analysis.typeCheckingMode": "basic",
+        "notebook.defaultKernel": "workshop",
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },
-"postStartCommand": "OLLAMA_CONTEXT_LENGTH=32768 nohup ollama serve > /tmp/ollama.log 2>&1 & sleep 3 && ollama run gemma4:e4b \"pre-warm yourself. just respond with 'yes'. dont think.\" --keepalive 1h",
-"forwardPorts": [11434, 8888],
+  "postCreateCommand": "pip install -e .",
+  //"postStartCommand": "OLLAMA_CONTEXT_LENGTH=32768 nohup ollama serve > /tmp/ollama.log 2>&1 & sleep 3 && ollama run gemma4:e4b \"pre-warm yourself. just respond with 'yes'. dont think.\" --keepalive 1h",
+  "forwardPorts": [8888],
   "portsAttributes": {
-    "11434": {
+    "// 11434": {
       "label": "Ollama",
       "onAutoForward": "silent"
     },

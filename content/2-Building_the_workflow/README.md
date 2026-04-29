@@ -2,7 +2,7 @@
 
 ## Explore Agent Framework Jupyter Notebooks
 
-Get familiar with the SDK by working through the notebooks:
+It is time Get familiar with the SDK by working through the notebooks:
 
 - **Create an agent** with `create_agent(AgentOptions(...))`
 - **Run a prompt** and view the response
@@ -13,8 +13,7 @@ Get familiar with the SDK by working through the notebooks:
 ### Notebooks
 
 ```
-code/01.BasicAgent/00.BasicAgent-agent.ipynb      # Basic agent creation
-code/01.BasicAgent/01.BasicAgent-tools.ipynb       # Adding tools to agents
+01-basic-agent.ipynb      # Basic agent creation
 code/01.BasicAgent/03.BasicAgent-websearch.ipynb   # Web search agent
 ```
 
