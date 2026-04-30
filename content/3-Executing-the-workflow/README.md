@@ -36,7 +36,21 @@ cd code/03.GenerationAudio
 ./run_vibe_voice.sh
 ```
 
-This uses VibeVoice to transform your text script into multi-speaker audio.
+#### Why VibeVoice-1.5B?
+
+VibeVoice is an open-source text-to-speech framework designed for expressive, long-form, multi-speaker audio like podcasts. It uses an autoregressive LLM combined with a diffusion head to generate speech from continuous tokens at an ultra-low 7.5 Hz frame rate — keeping output high-fidelity while staying computationally efficient.
+
+Three model sizes are available:
+
+| Model | Params | Max length | Speakers |
+|-------|--------|------------|----------|
+| VibeVoice-Streaming-0.5B | 0.5B | Real-time | 1 |
+| **VibeVoice-1.5B** | **1.5B** | **~90 min** | **Up to 4** |
+| VibeVoice-7B | 7B | ~45 min | Up to 4 |
+
+In this workshop we use the **1.5B model**. The 7B model produces higher-quality output but its weights are roughly 14 GB and it needs 16+ GB of VRAM — more than the GPU available in a GitHub Codespace. The 1.5B model fits comfortably in the Codespace environment (~3 GB weights, ~6-8 GB VRAM) while still supporting up to 4 distinct speakers and generating up to 90 minutes of audio, which is more than enough for our podcast episodes. The 0.5B streaming model is even lighter, but it only supports a single speaker, so it can't produce the multi-host conversations we need.
+
+The source code for VibeVoice itself is under 1 MB — the model weights are downloaded from Hugging Face on first run.
 
 ### 5. Listen to the results
 
