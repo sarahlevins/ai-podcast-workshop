@@ -1,5 +1,5 @@
 ---
-name: agent-artifact-builder
+name: podcast-agent-builder
 description: Agent that takes a podcast concept and produces complete agent instruction artifacts for the AI Podcast Studio workshop by combining role templates with host definitions.
 ---
 

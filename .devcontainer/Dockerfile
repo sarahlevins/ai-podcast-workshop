@@ -20,16 +20,6 @@ RUN echo 'source /opt/venv/bin/activate' >> /home/vscode/.bashrc \
     && chown vscode:vscode /home/vscode/.bashrc
 
 # ---------------------------------------------------------------------------
-# Pre-cache VibeVoice-1.5B model weights so participants don't wait for a 3 GB
-# download at runtime.  The HF cache lives under the vscode user's home so
-# from_pretrained() finds it automatically.
-# ---------------------------------------------------------------------------
-ENV HF_HOME=/home/vscode/.cache/huggingface
-RUN pip install --no-cache-dir huggingface_hub \
-    && huggingface-cli download vibevoice/VibeVoice-1.5B \
-    && chown -R vscode:vscode /home/vscode/.cache
-
-# ---------------------------------------------------------------------------
 # Optional: Ollama (local LLM). Uncomment the blocks below to bake Ollama and
 # a pre-pulled model into the image. When re-enabling, also restore the
 # `postStartCommand` and the `11434` port forward in devcontainer.json.
@@ -41,17 +31,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://ollama.com/install.sh | sh
 
-# Copy pre-downloaded Ollama models from the build context instead of pulling.
-# Before building, run: cp -r ~/.ollama/models .devcontainer/ollama-models
-# COPY .devcontainer/ollama-models /home/vscode/.ollama/models
-# RUN chown -R vscode:vscode /home/vscode/.ollama
-
 # Pre-pull a model into the vscode user's home so `ollama serve` finds it at runtime.
 USER vscode
 RUN ollama serve & \
     SERVE_PID=$! && \
     sleep 5 && \
-    ollama pull mistral && \
+    ollama pull llama3.2:3b && \
     kill $SERVE_PID && \
     wait $SERVE_PID 2>/dev/null || true
 USER root

@@ -1,22 +1,5 @@
 # Building the Workflow (20 minutes)
 
-## Explore Agent Framework Jupyter Notebooks
-
-It is time Get familiar with the SDK by working through the notebooks:
-
-- **Create an agent** with `create_agent(AgentOptions(...))`
-- **Run a prompt** and view the response
-- **Stream output** to see tokens as they arrive
-- **Add tools** like web search to give agents capabilities
-- **Observe reasoning** to understand how the model thinks
-
-### Notebooks
-
-```
-01-basic-agent.ipynb      # Basic agent creation
-code/01.BasicAgent/03.BasicAgent-websearch.ipynb   # Web search agent
-```
-
 ## Explore Agent Framework Dev UI
 
 The Dev UI lets you test agents interactively in a web interface.
