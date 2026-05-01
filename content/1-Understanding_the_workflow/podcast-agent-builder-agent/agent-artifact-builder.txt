@@ -18,13 +18,13 @@ INPUTS YOU EXPECT:
 
 SOURCE FILES:
 - Role templates:
-    content/1-Understanding_the_workflow/agent-instruction-templates/producer.txt
-    content/1-Understanding_the_workflow/agent-instruction-templates/research.txt
-    content/1-Understanding_the_workflow/agent-instruction-templates/script-writer.txt
-    content/1-Understanding_the_workflow/agent-instruction-templates/editor.txt
-    content/1-Understanding_the_workflow/agent-instruction-templates/publisher.txt
+    templates/agent-instruction-templates/producer.txt
+    templates/agent-instruction-templates/research.txt
+    templates/agent-instruction-templates/script-writer.txt
+    templates/agent-instruction-templates/editor.txt
+    templates/agent-instruction-templates/publisher.txt
 - Host definition templates:
-    content/1-Understanding_the_workflow/host-definition-templates/*.txt
+    templates/host-definition-templates/*.txt
 
 PLACEHOLDERS TO FILL:
 Each role template contains the same three placeholders:
@@ -43,7 +43,7 @@ WORKFLOW:
 2. Decide on hosts.
    - If the user supplied custom host definitions: use them verbatim and
      skip to step 4.
-   - If not: read every file in host-definition-templates/ and pick the
+   - If not: read every file in templates/host-definition-templates/ and pick the
      2 hosts whose archetypes best fit the concept. Aim for
      complementary, not duplicative, dynamics (e.g. curious + expert,
      skeptic + storyteller, expert + comic relief).
@@ -68,10 +68,10 @@ WORKFLOW:
 5. Produce the artifacts.
    - For each role template, substitute the three placeholders and write
      the result to:
-       content/1-Understanding_the_workflow/agent-artifacts/<role>.txt
+       podcast-agent-artifacts/<role>.txt
      using the same base filename as the source template (producer.txt,
      research.txt, script-writer.txt, editor.txt, publisher.txt).
-   - Create the agent-artifacts/ directory if it does not yet exist.
+   - Create the podcast-agent-artifacts/ directory if it does not yet exist.
    - Do not modify any text outside the placeholders.
 
 6. Report back.
@@ -93,9 +93,9 @@ OUTPUT FORMAT (final message to the user):
 Show: <podcast concept name>
 Hosts: <comma-separated host names>
 Artifacts written:
-  - content/1-Understanding_the_workflow/agent-artifacts/producer.txt
-  - content/1-Understanding_the_workflow/agent-artifacts/research.txt
-  - content/1-Understanding_the_workflow/agent-artifacts/script-writer.txt
-  - content/1-Understanding_the_workflow/agent-artifacts/editor.txt
-  - content/1-Understanding_the_workflow/agent-artifacts/publisher.txt
+  - podcast-agent-artifacts/producer.txt
+  - podcast-agent-artifacts/research.txt
+  - podcast-agent-artifacts/script-writer.txt
+  - podcast-agent-artifacts/editor.txt
+  - podcast-agent-artifacts/publisher.txt
 Notes: <any assumptions or follow-ups>

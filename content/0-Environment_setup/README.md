@@ -1,35 +1,22 @@
-# Environment Setup (10 minutes)
+# Environment Setup (15 minutes)
 
-Choose the setup that works best for you:
+### 1. Choose a setup and follow its instructions
 
-| Option | Description | Requirements |
-|--------|-------------|--------------|
-| **Codespace (recommended)** | Pre-built environment with code and models pre-installed. Just open and go. | GitHub account. GitHub spend may apply. |
-| **Local + Azure AI Foundry** | Fork and clone this repo, run locally using an existing model deployed in Azure AI Foundry. | Python 3.10+, Azure subscription |
-| **Local + GitHub Copilot** | Fork and clone this repo, run locally using GitHub Copilot CLI as the model provider. | Python 3.10+, GitHub Copilot access |
+| Option | Description | Requirements | Instructions |
+|--------|-------------|--------------|--------------|
+| **Codespace (recommended)** | Pre-built environment with code and models pre-installed. Just open and go. | GitHub account. GitHub spend may apply. | [Github Codespace](./setup/CODESPACE.md) |
+| **Local** | Fork and clone this repo, run locally using an existing model deployed in Azure AI Foundry, or locally with GitHub Copilot. | Python 3.10+, Azure subscription | [Local](./setup/LOCAL.md) |
 
-## Setup Steps
+### 2. Choose and configure your model provider
 
-### 1. Open the Codespace (or fork & clone locally)
+We'll be running agents via notebooks and scripts through the agent-framework, which supports several model providers. Pick the one that matches your setup:
 
-If running locally, fork and clone the repo, then continue with step 2.
+| Provider | When to use it | Speed | `MODEL_PROVIDER` | What to configure |
+|----------|----------------|-------|------------------|-------------------|
+| **Azure AI Foundry** (recommended) | You have an Azure subscription and a deployed model. Best performance and the most production-like experience. | Fastest | `foundry` | `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `FOUNDRY_API_KEY` |
+| **Ollama** | You have a model pulled locally, or you're using the prebuilt Codespace (models are baked in). Works fully offline but is the slowest option. | Slowest | `ollama` | `OLLAMA_HOST`, `OLLAMA_CHAT_MODEL_ID` |
 
-### 2. Run the setup script
-
-This creates a virtual environment and installs all dependencies:
-
-```bash
-source code/setup.sh
-```
-
-The script will:
-- Create a `.venv` virtual environment if one doesn't exist
-- Install all required packages
-- Register a Jupyter kernel called **AI Podcast Studio**
-
-**Note:** The script must be run with `source` (not `./` or `bash`) so the virtual environment activation persists in your shell. It supports both bash and zsh.
-
-### 3. Configure your model provider
+We recommend you use Azure AI Foundry as it will be the fastest/most performant. It may be subject to cost depending on your Azure Subscription. If you would like to use it as your provider, follow [these instructions](./setup/AZURE_AI_FOUNDRY.md) to set it up and get an API key.
 
 Copy the example env file and fill in your values:
 
@@ -37,14 +24,10 @@ Copy the example env file and fill in your values:
 cp code/.env.examples code/.env
 ```
 
-Edit `code/.env` to set your `MODEL_PROVIDER`:
+Then edit `code/.env` to set your `MODEL_PROVIDER` and the matching configuration values from the table above.
 
-| Provider | `MODEL_PROVIDER` | What to configure |
-|----------|-----------------|-------------------|
-| **Ollama** (default) | `ollama` | `OLLAMA_HOST`, `OLLAMA_CHAT_MODEL_ID` |
-| **GitHub Copilot** | `github-copilot` | `GITHUB_COPILOT_MODEL` |
-| **Microsoft Foundry** | `foundry` | `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `FOUNDRY_API_KEY` |
+### 4. Test your setup
 
-### 4. Select the Jupyter kernel in VS Code
+Open the [Setup Test Notebook](./setup-test.ipynb) and select the appropriate **AI Podcast Studio** kernel from the kernel picker (under Jupyter Kernels, not Python Environments).
 
-When opening a notebook, select the **AI Podcast Studio** kernel from the kernel picker (under Jupyter Kernels, not Python Environments).
+Your requests to agents should show their responses

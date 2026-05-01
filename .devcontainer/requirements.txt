@@ -11,5 +11,5 @@ requests>=2.32.0
 python-dotenv==1.2.2
 jupyter==1.1.1
 ipykernel==7.2.0
-vibevoice==0.0.1
 duckduckgo-search
+azure-cognitiveservices-speech>=1.40.0
