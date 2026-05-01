@@ -55,30 +55,21 @@ Pick one of the three paths below. All of them produce the same output: a `podca
 
 ### Option A — Run the Python agent builder (recommended)
 
-The [`podcast-agent-builder-agent/`](podcast-agent-builder-agent) module runs an agentic workflow using the agent-framework CLI.
+The [`podcast-agent-builder-agent/`](podcast-agent-builder-agent) module runs an agentic workflow using the agent-framework CLI and the model you set up via the .env
 
 1. From the repo root, run:
    ```
    cd /workspaces/ai-podcast-workshop && python content/1-Understanding_the_workflow/podcast-agent-builder-agent/agent-artifact-builder.py
    ```
 2. When prompted, describe your podcast concept in a sentence or two.
-3. The agent will propose a host line-up — confirm or request changes.
+3. The agent will propose a host line-up — confirm or request changes. Make sure you only let it set 2 hosts!
 4. It writes the five artifacts to `content/1-Understanding_the_workflow/podcast-agent-artifacts/`.
 
 ---
 
-### Option B — Use the GitHub agent
+### Option B — Use your own external agent
 
-The [`.github/agents/podcast-agent-builder.md`](../../.github/agents/podcast-agent-builder.md) agent guides you through the same process conversationally inside Claude Code or any agent runner that supports `.github/agents`.
-
-1. Open Github Copilot and run:
-   ```
-   /agents podcast-agent-builder
-   ```
-   Or load the agent file directly in your agent runner of choice.
-2. Describe your podcast concept. Optionally provide up to 2 custom host definitions; otherwise the agent picks from the host templates.
-3. Confirm the proposed host line-up when asked.
-4. The agent writes the five artifacts to `content/1-Understanding_the_workflow/podcast-agent-artifacts/`.
+Use an agent of your choice. Copy the `agent-artifact-builder.txt` file into an LLM you have a subscription to that can handle creative tasks, and then copy the files it generates into `content/1-Understanding_the_workflow/podcast-agent-artifacts/`
 
 ---
 

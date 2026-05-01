@@ -1,25 +1,20 @@
-# Building the Workflow (20 minutes)
+# Building the Workflow (15 minutes)
 
 ## Explore Agent Framework Dev UI
 
 The Dev UI lets you test agents interactively in a web interface.
 
-```bash
-python code/02.Workflow-MultiAgent/01.AgentDevUI/agent.py
-```
+https://learn.microsoft.com/en-us/agent-framework/devui/?pivots=programming-language-python
 
 - Chat with your agent in a browser
 - See tool calls and reasoning in real time
 - Test different prompts and instructions
 
-## The Workflow Architecture
+## Explore Agent Framework Workflows
 
-```
-TopicAgent -> ResearchAgent -> ScriptAgent -> ReviewExecutor -> EditAgent -> SaveExecutor
-                                                   ^                |
-                                                   |________________|
-                                                  (rejection loop)
-```
+Agent Framework workflows allow you to orchestrate complex workflows combining agents and programmatic tools, without getting bogged down in infrastructure complexity.
+
+https://learn.microsoft.com/en-us/agent-framework/workflows/
 
 ### Key concepts
 
@@ -27,6 +22,15 @@ TopicAgent -> ResearchAgent -> ScriptAgent -> ReviewExecutor -> EditAgent -> Sav
 - **Executors** — Custom logic components (like the review step or saving to file).
 - **Edges** — Connections that route messages between executors.
 - **Human-in-the-loop** — The ReviewExecutor pauses the workflow for your approval.
+
+## Our AI Podcast Studio Workflow Architecture
+
+```
+TopicAgent -> ResearchAgent -> ScriptAgent -> ReviewExecutor -> EditAgent -> SaveExecutor
+                                                   ^                |
+                                                   |________________|
+                                                  (rejection loop)
+```
 
 ### Building the workflow in code
 
@@ -52,10 +56,12 @@ workflow = (
 )
 ```
 
-### Running the workflow Dev UI
+## Exercise: Generate your first podcast script using a Workflow in Dev UI
+
+Run the workflow in the Dev UI using the following command
 
 ```bash
-python code/02.Workflow-MultiAgent/02.WorkflowDevUI/main.py
+python content/2-Building_the_workflow/code/2-podcast-creation-workflow/workflow.py
 ```
 
 This launches the workflow in a web interface where you can:

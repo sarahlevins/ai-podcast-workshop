@@ -1,4 +1,4 @@
-# Environment Setup (10 minutes)
+# Environment Setup (15 minutes)
 
 ### 1. Choose a setup and follow its instructions
 
@@ -14,7 +14,6 @@ We'll be running agents via notebooks and scripts through the agent-framework, w
 | Provider | When to use it | Speed | `MODEL_PROVIDER` | What to configure |
 |----------|----------------|-------|------------------|-------------------|
 | **Azure AI Foundry** (recommended) | You have an Azure subscription and a deployed model. Best performance and the most production-like experience. | Fastest | `foundry` | `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `FOUNDRY_API_KEY` |
-| **GitHub Copilot** | You have the GitHub Copilot CLI installed locally and an active Copilot subscription. No extra cloud setup. | Fast | `github-copilot` | `GITHUB_COPILOT_MODEL` |
 | **Ollama** | You have a model pulled locally, or you're using the prebuilt Codespace (models are baked in). Works fully offline but is the slowest option. | Slowest | `ollama` | `OLLAMA_HOST`, `OLLAMA_CHAT_MODEL_ID` |
 
 We recommend you use Azure AI Foundry as it will be the fastest/most performant. It may be subject to cost depending on your Azure Subscription. If you would like to use it as your provider, follow [these instructions](./setup/AZURE_AI_FOUNDRY.md) to set it up and get an API key.
