@@ -14,8 +14,8 @@ load_dotenv()
 # All file operations are scoped to this directory
 WORKING_DIR = Path(__file__).resolve().parent.parent
 
-# Load the system prompt from the instructions file
-INSTRUCTIONS = (WORKING_DIR / "agent-artifact-builder.txt").read_text()
+# Load the system prompt from the instructions file in the same directory as this module
+INSTRUCTIONS = (Path(__file__).resolve().parent / "agent-artifact-builder.txt").read_text()
 
 
 def _resolve(relative_path: str) -> Path:
@@ -27,7 +27,7 @@ def _resolve(relative_path: str) -> Path:
 
 
 def read_file(
-    path: Annotated[str, Field(description="Relative path to read, e.g. 'agent-instruction-templates/producer.txt'")],
+    path: Annotated[str, Field(description="Relative path to read, e.g. 'templates/agent-instruction-templates/producer.txt'")],
 ) -> str:
     """Read a file's contents. Path is relative to content/1-Understanding_the_workflow/."""
     target = _resolve(path)
@@ -37,7 +37,7 @@ def read_file(
 
 
 def list_directory(
-    path: Annotated[str, Field(description="Relative directory path, e.g. 'host-definition-templates'")] = ".",
+    path: Annotated[str, Field(description="Relative directory path, e.g. 'templates/host-definition-templates'")] = ".",
 ) -> str:
     """List files and directories. Path is relative to content/1-Understanding_the_workflow/."""
     target = _resolve(path)
@@ -52,7 +52,7 @@ def list_directory(
 
 
 def write_file(
-    path: Annotated[str, Field(description="Relative path to write, e.g. 'agent-artifacts/producer.txt'")],
+    path: Annotated[str, Field(description="Relative path to write, e.g. 'podcast-agent-artifacts/producer.txt'")],
     content: Annotated[str, Field(description="File content to write")],
 ) -> str:
     """Write content to a file, creating parent directories if needed."""

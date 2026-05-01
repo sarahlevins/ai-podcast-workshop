@@ -34,9 +34,9 @@ When defining an AI host, consider these dimensions:
 
 Good hosts **complement** each other. One asks, one answers. One gets excited, one stays grounded. This tension is what makes podcasts engaging — and it's exactly what we need to capture in our agent instructions.
 
-## Exercise: Define your agent artefacts
+## Exercise: Create your podcast agent artifacts
 
-You need one filled-in instruction artefact per role in the pipeline:
+You need one filled-in instruction artifact per role in the pipeline:
 
 - **Producer Agent** — Generates a compelling episode angle, title, and talking points.
 - **Research Agent** — Finds recent facts, stats, and examples for each talking point.
@@ -44,33 +44,56 @@ You need one filled-in instruction artefact per role in the pipeline:
 - **Editor Agent** — Tightens the script, checks pacing, ensures hosts sound distinct.
 - **Publisher Agent** — Saves the final approved script to a file.
 
-The scaffolding for all of these lives in this folder:
+The templates live here:
 
-- [agent-instruction-templates/](agent-instruction-templates) — one role template per agent. Each contains three placeholders: `{{PODCAST_CONCEPT}}`, `{{PODCAST_CONCEPT_DESCRIPTION}}`, and `{{HOST_DEFINITIONS}}`.
-- [host-definition-templates/](host-definition-templates) — drop-in host archetypes (curious host, expert, skeptic, storyteller, practitioner, comic relief).
-- [agent-artifact-builder.txt](agent-artifact-builder.txt) — instructions for an agent that does the assembly for you.
+- [templates/agent-instruction-templates/](templates/agent-instruction-templates) — one role template per agent. Each contains three placeholders: `{{PODCAST_CONCEPT}}`, `{{PODCAST_CONCEPT_DESCRIPTION}}`, and `{{HOST_DEFINITIONS}}`.
+- [templates/host-definition-templates/](templates/host-definition-templates) — drop-in host archetypes (curious host, expert, skeptic, storyteller, practitioner, comic relief).
 
-Pick one of the two paths below.
+Pick one of the three paths below. All of them produce the same output: a `podcast-agent-artifacts/` folder inside `content/1-Understanding_the_workflow/` containing five filled-in role files.
 
-### Option A — Use the agent-artifact-builder agent (recommended)
+---
 
-Let an agent fill the templates in for you.
+### Option A — Run the Python agent builder (recommended)
 
-1. Spin up an agent (in Claude Code, GitHub Copilot, or whatever you're using) and load [agent-artifact-builder.txt](agent-artifact-builder.txt) as its instructions.
-2. Give it your podcast concept in a sentence or two. Optionally pass in no more than 2 custom host definitions; if you don't, it will pick from the host templates.
-3. Confirm (or change) its proposed host line-up when it asks.
-4. It will write the five filled-in artefacts to `content/1-Understanding_the_workflow/agent-artifacts/`, one per role.
+The [`podcast-agent-builder-agent/`](podcast-agent-builder-agent) module runs an agentic workflow using the agent-framework CLI.
 
-### Option B — Fill the templates in by hand
+1. From the repo root, run:
+   ```
+   cd /workspaces/ai-podcast-workshop && python content/1-Understanding_the_workflow/podcast-agent-builder-agent/agent-artifact-builder.py
+   ```
+2. When prompted, describe your podcast concept in a sentence or two.
+3. The agent will propose a host line-up — confirm or request changes.
+4. It writes the five artifacts to `content/1-Understanding_the_workflow/podcast-agent-artifacts/`.
+
+---
+
+### Option B — Use the GitHub agent
+
+The [`.github/agents/podcast-agent-builder.md`](../../.github/agents/podcast-agent-builder.md) agent guides you through the same process conversationally inside Claude Code or any agent runner that supports `.github/agents`.
+
+1. Open Github Copilot and run:
+   ```
+   /agents podcast-agent-builder
+   ```
+   Or load the agent file directly in your agent runner of choice.
+2. Describe your podcast concept. Optionally provide up to 2 custom host definitions; otherwise the agent picks from the host templates.
+3. Confirm the proposed host line-up when asked.
+4. The agent writes the five artifacts to `content/1-Understanding_the_workflow/podcast-agent-artifacts/`.
+
+---
+
+### Option C — Fill the templates in by hand
 
 If you'd rather see the seams, do the substitution yourself.
 
-1. Create an `agent-artifacts/` folder inside `content/1-Understanding_the_workflow/`.
-2. Copy each file from [agent-instruction-templates/](agent-instruction-templates) into it.
-3. Pick 2 hosts from [host-definition-templates/](host-definition-templates) (or write your own using the dimensions in the table above). Aim for complementary roles — curious + expert, skeptic + storyteller, expert + comic relief.
-4. In every copied artefact, replace:
+1. Create a `podcast-agent-artifacts/` folder inside `content/1-Understanding_the_workflow/`.
+2. Copy each file from [templates/agent-instruction-templates/](templates/agent-instruction-templates) into it.
+3. Pick 2 hosts from [templates/host-definition-templates/](templates/host-definition-templates) (or write your own using the dimensions in the table above). Aim for complementary roles — curious + expert, skeptic + storyteller, expert + comic relief.
+4. In every copied artifact, replace:
    - `{{PODCAST_CONCEPT}}` with a short show name.
-   - `{{PODCAST_CONCEPT_DESCRIPTION}}` with a 2-4 sentence pitch.
+   - `{{PODCAST_CONCEPT_DESCRIPTION}}` with a 2–4 sentence pitch.
    - `{{HOST_DEFINITIONS}}` with the contents of your chosen host files, concatenated.
 
-Either way, the output is the same: five role-specific instruction files, ready to drop into `create_agent(...)` calls in the next section.
+---
+
+Once you have all five files in `podcast-agent-artifacts/`, you're ready for the next section.
