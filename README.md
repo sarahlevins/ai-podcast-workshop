@@ -26,7 +26,7 @@ This workshop builds on Microsoft's [Edge AI for Beginners](https://github.com/m
 
 | | Section | Time | Link |
 |---|---------|------|------|
-| 1 | Environment Setup | 10 min | [content/0-Environment_setup](content/0-Environment_setup/README.md) |
-| 2 | Understanding the Workflow | 10 min | [content/1-Understanding_the_workflow](content/1-Understanding_the_workflow) |
-| 3 | Building the Workflow | 20 min | [content/2-Building_the_workflow](content/2-Building_the_workflow) |
-| 4 | Executing the Workflow | 15 min | [content/3-Executing-the-workflow](content/3-Executing-the-workflow) |
+| 1 | Environment Setup | 10 min | [1-Environment_setup](content/1-Environment_setup/README.md) |
+| 2 | Understanding the Workflow | 10 min | [2-Understanding_the_workflow](content/2-Understanding_the_workflow) |
+| 3 | Building the Workflow | 20 min | [3-Building_the_workflow](content/3-Building_the_workflow) |
+| 4 | Executing the Workflow | 15 min | [4-Executing-the-workflow](content/4-Executing-the-workflow) |

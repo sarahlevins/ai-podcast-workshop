@@ -42,7 +42,7 @@ from utils.agents import create_agent, AgentOptions  # noqa: E402
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-ARTIFACTS_DIR = WORKSPACE / "content/1-Understanding_the_workflow/podcast-agent-artifacts"
+ARTIFACTS_DIR = WORKSPACE / "content/2-Understanding_the_workflow/podcast-agent-artifacts"
 OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 
 

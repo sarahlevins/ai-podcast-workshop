@@ -29,7 +29,7 @@ def _resolve(relative_path: str) -> Path:
 def read_file(
     path: Annotated[str, Field(description="Relative path to read, e.g. 'templates/agent-instruction-templates/producer.txt'")],
 ) -> str:
-    """Read a file's contents. Path is relative to content/1-Understanding_the_workflow/."""
+    """Read a file's contents. Path is relative to content/2-Understanding_the_workflow/."""
     target = _resolve(path)
     if not target.is_file():
         return f"Error: {path} not found"
@@ -39,7 +39,7 @@ def read_file(
 def list_directory(
     path: Annotated[str, Field(description="Relative directory path, e.g. 'templates/host-definition-templates'")] = ".",
 ) -> str:
-    """List files and directories. Path is relative to content/1-Understanding_the_workflow/."""
+    """List files and directories. Path is relative to content/2-Understanding_the_workflow/."""
     target = _resolve(path)
     if not target.is_dir():
         return f"Error: {path} is not a directory"

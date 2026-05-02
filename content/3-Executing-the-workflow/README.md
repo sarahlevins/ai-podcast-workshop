@@ -2,7 +2,7 @@
 
 Once approved, the script is saved to a file. Generate audio from it.
 
-To generate the audio we need GPU. My laptop has none, so I'm recommending some ways to do it in the cloud on the cheap.
+To generate the audio we need GPU. That can be limited on most people's machines, so we will look at some ways to do it in the cloud on the cheap.
 
 We are going to go through a few different models to find the right one for our team.
 

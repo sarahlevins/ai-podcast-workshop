@@ -392,7 +392,7 @@ Pick **one** of three paths
 </div>
 
 <div class="pt-8 text-sm opacity-70">
-Output: 5 files in <code>content/1-Understanding_the_workflow/podcast-agent-artifacts/</code>
+Output: 5 files in <code>content/2-Understanding_the_workflow/podcast-agent-artifacts/</code>
 </div>
 
 ---

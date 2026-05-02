@@ -49,7 +49,7 @@ The templates live here:
 - [templates/agent-instruction-templates/](templates/agent-instruction-templates) — one role template per agent. Each contains three placeholders: `{{PODCAST_CONCEPT}}`, `{{PODCAST_CONCEPT_DESCRIPTION}}`, and `{{HOST_DEFINITIONS}}`.
 - [templates/host-definition-templates/](templates/host-definition-templates) — drop-in host archetypes (curious host, expert, skeptic, storyteller, practitioner, comic relief).
 
-Pick one of the three paths below. All of them produce the same output: a `podcast-agent-artifacts/` folder inside `content/1-Understanding_the_workflow/` containing five filled-in role files.
+Pick one of the three paths below. All of them produce the same output: a `podcast-agent-artifacts/` folder inside `content/2-Understanding_the_workflow/` containing five filled-in role files.
 
 ---
 
@@ -59,17 +59,17 @@ The [`podcast-agent-builder-agent/`](podcast-agent-builder-agent) module runs an
 
 1. From the repo root, run:
    ```
-   cd /workspaces/ai-podcast-workshop && python content/1-Understanding_the_workflow/podcast-agent-builder-agent/agent-artifact-builder.py
+   cd /workspaces/ai-podcast-workshop && python content/2-Understanding_the_workflow/podcast-agent-builder-agent/agent-artifact-builder.py
    ```
 2. When prompted, describe your podcast concept in a sentence or two.
 3. The agent will propose a host line-up — confirm or request changes. Make sure you only let it set 2 hosts!
-4. It writes the five artifacts to `content/1-Understanding_the_workflow/podcast-agent-artifacts/`.
+4. It writes the five artifacts to `content/2-Understanding_the_workflow/podcast-agent-artifacts/`.
 
 ---
 
 ### Option B — Use your own external agent
 
-Use an agent of your choice. Copy the `agent-artifact-builder.txt` file into an LLM you have a subscription to that can handle creative tasks, and then copy the files it generates into `content/1-Understanding_the_workflow/podcast-agent-artifacts/`
+Use an agent of your choice. Copy the `agent-artifact-builder.txt` file into an LLM you have a subscription to that can handle creative tasks, and then copy the files it generates into `content/2-Understanding_the_workflow/podcast-agent-artifacts/`
 
 ---
 
@@ -77,7 +77,7 @@ Use an agent of your choice. Copy the `agent-artifact-builder.txt` file into an 
 
 If you'd rather see the seams, do the substitution yourself.
 
-1. Create a `podcast-agent-artifacts/` folder inside `content/1-Understanding_the_workflow/`.
+1. Create a `podcast-agent-artifacts/` folder inside `content/2-Understanding_the_workflow/`.
 2. Copy each file from [templates/agent-instruction-templates/](templates/agent-instruction-templates) into it.
 3. Pick 2 hosts from [templates/host-definition-templates/](templates/host-definition-templates) (or write your own using the dimensions in the table above). Aim for complementary roles — curious + expert, skeptic + storyteller, expert + comic relief.
 4. In every copied artifact, replace:
