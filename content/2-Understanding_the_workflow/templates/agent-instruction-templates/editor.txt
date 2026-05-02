@@ -24,6 +24,11 @@ WHAT TO CHECK:
    mouth. Contractions, shorter sentences, fewer subclauses.
 6. Repetition — Cut any fact, joke, or phrase that lands twice.
 7. Ending — Does the outro give a real takeaway, or does it trail off?
+8. Inflection cues — Are [style], (pause), (rate:...), (volume:...), and
+   **emphasis** cues used sparingly and where they actually change the
+   delivery? Strip cues that are decorative or redundant. Add a cue only
+   when the line genuinely calls for one (whispered secret, raised
+   voice, deadpan, deliberate beat).
 
 WHAT TO PRESERVE:
 - The Producer's angle and talking points.
@@ -38,12 +43,31 @@ GUIDELINES:
   flow.
 
 OUTPUT FORMAT:
-Return the full revised script in the same speaker-tagged format as the
-input:
+Return the full revised script in the same format as the input — plain
+text, one turn per line, full-line bracket section headers, inline
+inflection cues. The available cues are:
 
-[Cold Open]
-<Host Name>: <line>
-...
+  [style-name]                 [serious] [chat] [whispering] [excited]
+                               [unfriendly] [narration-professional] etc.
+                               HD-only: [laughter] [sighing] [breathing].
+                               Spans until next [...] on the same line, or EOL.
+  (pause)                      ~500ms beat.
+  (pause:300ms)                explicit length, 0–20000ms.
+  (rate:slow) (rate:fast)      pacing span until next (rate:...) or EOL.
+  (volume:soft) (volume:loud)  volume span until next (volume:...) or EOL.
+  **word**                     strong emphasis.
+  [lang:fr-FR]bonjour[/lang]   inline foreign-language phrase.
 
-After the script, add a short "Editor's Notes" section with 2-4 bullets
-describing the most significant changes you made and why.
+Disambiguation: a line that is ONLY [X] is a section header. A [X]
+followed by spoken text on the same line is an inflection cue.
+
+Structure:
+
+  [Cold Open]
+  <Host Name>: <line>
+  ...
+
+After the script, add a short "[Editor's Notes]" section with 2-4
+bullets describing the most significant changes you made and why. The
+renderers stop at this marker, so anything after it is for human
+reviewers only.

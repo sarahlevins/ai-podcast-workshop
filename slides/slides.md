@@ -62,13 +62,15 @@ layout: intro
 
 <div>
 
-- Software engineer @ Microsoft
+- Software engineer @ Microsoft — working on **Clipchamp**, Office's video editor
 - I like building with AI agents and breaking them in interesting ways
 - Podcast nerd — I run a lot to celebrity interview podcasts
 
 </div>
 
 <div>
+
+<img src="/clipchamp-logo.png" class="h-12 mb-4" />
 
 **Find me after**
 

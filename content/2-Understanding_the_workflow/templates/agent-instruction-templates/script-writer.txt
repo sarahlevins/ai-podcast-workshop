@@ -39,18 +39,53 @@ CONSTRAINTS:
   follow-up explanation.
 
 OUTPUT FORMAT:
-[Cold Open]
-<Host Name>: <line>
-<Host Name>: <line>
+Plain text, one turn per line. Section headers are full-line bracket
+markers. Inflection cues are inline. The output is rendered to both
+VibeVoice (cues stripped) and Azure SSML (cues expanded), so use cues
+where they carry meaning — don't decorate every line.
 
-[Intro]
-<Host Name>: <line>
-...
+Structure:
+  [Section Name]               ← full-line bracket = section header
+  <Host Name>: <line>          ← turn line
+  ...
+  [Editor's Notes]             ← optional notes block (skipped by renderers)
+  - bullet
 
-[Segment 1: <talking point>]
-<Host Name>: <line>
-...
+Inline inflection cues (place inside a turn after the colon):
+  [style-name]                 emotional / paralinguistic style; applies
+                               until the next [...] on the same line, or EOL.
+                               Examples: [serious] [chat] [whispering]
+                               [unfriendly] [excited] [narration-professional].
+                               HD-only paralinguistics: [laughter] [sighing]
+                               [breathing] [yawning] [coughing].
+  (pause)                      a beat (~500ms).
+  (pause:300ms)                an explicit pause length, 0–20000ms.
+  (rate:slow) (rate:fast)      pacing; spans until next (rate:...) or EOL.
+  (volume:soft) (volume:loud)  volume; spans until next (volume:...) or EOL.
+  **word**                     strong emphasis on a word or short phrase.
+  [lang:fr-FR]bonjour[/lang]   inline foreign-language phrase.
 
-[Outro]
-<Host Name>: <line>
-...
+Disambiguation: a line that is ONLY [X] (with no spoken text after) is
+treated as a section header. A [X] cue followed by spoken text on the
+same line is an inflection cue.
+
+Use cues sparingly — pick the ones that change how a line should be
+delivered. A normal turn needs no cues; punctuation does most of the
+work. Reach for [style] when the emotional register shifts (whispered
+secret, raised voice, deadpan delivery), not on every line.
+
+Example:
+
+  [Cold Open]
+  Ken: [serious] The hatch in season two — (pause:300ms) everyone
+  remembers the countdown, nobody remembers the lie underneath it.
+  Maya: [chat] The lie?
+  Ken: Well actually, the button isn't doing what they think it's doing.
+  (pause) That's the whole game.
+  Maya: [unfriendly] Says who? The Dharma orientation tape literally says
+  **push the button**.
+  Ken: (rate:slow) Sort of, but… (pause:400ms) the tape is the lie.
+
+  [Intro]
+  Ken: Welcome back to the show.
+  ...

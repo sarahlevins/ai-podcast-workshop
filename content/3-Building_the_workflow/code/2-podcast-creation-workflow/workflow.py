@@ -39,6 +39,12 @@ from agent_framework import (  # noqa: E402
     response_handler,
 )
 from utils.agents import create_agent, AgentOptions  # noqa: E402
+from utils.script_renderers import (  # noqa: E402
+    clip_source,
+    parse_source,
+    render_ssml,
+    render_vibevoice,
+)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -196,52 +202,40 @@ class PublishReviewExecutor(Executor):
             )
 
 
-def _to_vibevoice(script: str) -> str:
-    """Strip section headers, editor's notes, and markdown from a script.
-
-    VibeVoice-TTS expects plain `Speaker: dialogue` lines with no square-bracket
-    headers (which conflict with ASR timestamp format) and no markdown formatting.
-    """
-    import re
-    lines = []
-    for line in script.splitlines():
-        # Stop at any editor's notes block
-        if re.match(r"^\[Editor", line, re.IGNORECASE):
-            break
-        # Drop section header lines — e.g. [Cold Open], [Segment 1: ...]
-        # These are full-line bracket markers, not inline references
-        if re.match(r"^\[.+\]\s*$", line):
-            continue
-        # Strip markdown bold/italic asterisks: *word* → word
-        line = re.sub(r"\*([^*]+)\*", r"\1", line)
-        lines.append(line)
-    # Collapse runs of 3+ blank lines to a single blank line
-    cleaned = re.sub(r"\n{3,}", "\n\n", "\n".join(lines))
-    return cleaned.strip()
-
-
 class SaveExecutor(Executor):
-    """Saves the approved script, VibeVoice-compatible script, and publish packet."""
+    """Saves the approved script in source, VibeVoice, and Azure SSML formats —
+    each in full and clipped (1-2 minute preview) variants — plus the publisher
+    notes."""
 
     @handler
     async def save(self, request: AgentExecutorRequest, ctx: WorkflowContext) -> None:
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        script_path   = OUTPUT_DIR / f"script_{timestamp}.txt"
-        vibevoice_path = OUTPUT_DIR / f"script_{timestamp}_vibevoice.txt"
-        packet_path   = OUTPUT_DIR / f"publisher_notes_{timestamp}.txt"
+        source_full    = _pipeline["script"]
+        source_clipped = clip_source(source_full)
 
-        script_path.write_text(_pipeline["script"])
-        vibevoice_path.write_text(_to_vibevoice(_pipeline["script"]))
-        packet_path.write_text(_pipeline["packet"])
+        items_full    = parse_source(source_full)
+        items_clipped = parse_source(source_clipped)
 
+        files: dict[str, str] = {
+            f"source-full-script-{ts}.txt":         source_full,
+            f"source-clipped-script-{ts}.txt":      source_clipped,
+            f"vibevoice-full-script-{ts}.txt":      render_vibevoice(items_full),
+            f"vibevoice-clipped-script-{ts}.txt":   render_vibevoice(items_clipped),
+            f"azure-full-script-{ts}.txt":          render_ssml(items_full),
+            f"azure-clipped-script-{ts}.txt":       render_ssml(items_clipped),
+            f"publisher-notes-{ts}.txt":            _pipeline["packet"],
+        }
+
+        for name, content in files.items():
+            (OUTPUT_DIR / name).write_text(content)
+
+        listing = "\n".join(f"  {name}" for name in files)
         summary = (
             f"Episode saved successfully!\n\n"
-            f"  Script (full):      {script_path.name}\n"
-            f"  Script (VibeVoice): {vibevoice_path.name}\n"
-            f"  Publisher notes:    {packet_path.name}\n"
-            f"  Location:           {OUTPUT_DIR}"
+            f"{listing}\n\n"
+            f"  Location: {OUTPUT_DIR}"
         )
         await ctx.yield_output(summary)
 
