@@ -1,6 +1,8 @@
 # Set up with GitHub Codespaces
 
-A Codespace gives you a full, pre-configured workshop environment running in the cloud — accessible from your browser or from VS Code on your laptop. The repo's Dockerfile, dependencies, and (in the recommended path) the local Ollama models are all baked into a **prebuilt image**, so a fresh Codespace boots in roughly a minute instead of the several minutes a cold dev-container build would take.
+A Codespace gives you a full, pre-configured workshop environment running in the cloud — accessible from your browser or from VS Code on your laptop. 
+
+This repo's Dev Container has be made into a **prebuilt image**, so a fresh Codespace boots in roughly a minute instead of the several minutes a cold dev-container build, or manual requirements install would take.
 
 ## Recommended: launch the Codespace from the upstream repo
 
