@@ -83,12 +83,12 @@ Choose the model of your choice and start generating
 4. Paste the contents of [vibevoice-7b.sh](./vibevoice-7b.sh) in
 5. Run `chmod +x ./vibe_voice_7b.sh` in the terminal
 6. Copy your clipped vibe voice script file into the workspace
-7. Run `./vibevoice-7b.sh` and pass in the name of your speakers and the file name
+7. Run `./vibe_voice_7b.sh` and pass in the name of your speakers and the file name
 
 ```bash
-./vibe_voice_7b.sh ./my-script.txt Lucy Maya
+./vibe_voice_7b.sh --txt ./script.txt Alice Maya
 ```
-7. Wait for your audio to be generated then download
+7. Wait for your audio to be generated into `VibeVoice/outputs` where you can listen to it and download it.
 
 ### Azure Text-To-Speech
 The easiest way to test your script with Azure Text-To-Speech will be to use the Playground available in Azure AI Foundry.
