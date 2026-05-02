@@ -204,11 +204,23 @@ def _render_turn_ssml(text: str) -> str:
 def render_ssml(
     items: list[Section | Turn],
     voices: dict[str, str] | None = None,
+    speaker1: str | None = None,
+    speaker2: str | None = None,
     default_voice: str = "en-GB-Ollie:DragonHDLatestNeural",
 ) -> str:
     """Render to a complete Azure SSML document. Unknown hosts fall back to
-    `default_voice`."""
-    voice_map = voices or DEFAULT_AZURE_VOICES
+    `default_voice`.
+    
+    If speaker1 and speaker2 are provided, they will be mapped to Ada and Ollie
+    respectively, overriding the voices dict.
+    """
+    if speaker1 and speaker2:
+        voice_map = {
+            speaker1: "en-GB-Ada:DragonHDLatestNeural",
+            speaker2: "en-GB-Ollie:DragonHDLatestNeural",
+        }
+    else:
+        voice_map = voices or DEFAULT_AZURE_VOICES
     parts: list[str] = [
         '<speak version="1.0" '
         'xmlns="http://www.w3.org/2001/10/synthesis" '

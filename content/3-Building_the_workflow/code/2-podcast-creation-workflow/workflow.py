@@ -40,6 +40,7 @@ from agent_framework import (  # noqa: E402
 )
 from utils.agents import create_agent, AgentOptions  # noqa: E402
 from utils.script_renderers import (  # noqa: E402
+    Turn,
     clip_source,
     parse_source,
     render_ssml,
@@ -218,13 +219,23 @@ class SaveExecutor(Executor):
         items_full    = parse_source(source_full)
         items_clipped = parse_source(source_clipped)
 
+        # Extract the first two unique speakers
+        speakers = []
+        for item in items_full:
+            if isinstance(item, Turn) and item.host not in speakers:
+                speakers.append(item.host)
+                if len(speakers) == 2:
+                    break
+
+        speaker1, speaker2 = (speakers[0], speakers[1]) if len(speakers) >= 2 else (None, None)
+
         files: dict[str, str] = {
             f"source-full-script-{ts}.txt":         source_full,
             f"source-clipped-script-{ts}.txt":      source_clipped,
             f"vibevoice-full-script-{ts}.txt":      render_vibevoice(items_full),
             f"vibevoice-clipped-script-{ts}.txt":   render_vibevoice(items_clipped),
-            f"azure-full-script-{ts}.txt":          render_ssml(items_full),
-            f"azure-clipped-script-{ts}.txt":       render_ssml(items_clipped),
+            f"azure-full-script-{ts}.txt":          render_ssml(items_full, speaker1=speaker1, speaker2=speaker2),
+            f"azure-clipped-script-{ts}.txt":       render_ssml(items_clipped, speaker1=speaker1, speaker2=speaker2),
             f"publisher-notes-{ts}.txt":            _pipeline["packet"],
         }
 

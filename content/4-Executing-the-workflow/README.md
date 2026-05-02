@@ -115,7 +115,7 @@ Run the following command from root to generate the audio from an SSML file.
 python generate_azure_speech.py <path to ssml script> <path to output folder>
 
 # from root
-python content/4-Executing-the-workflow/generate_azure_speech.py content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/<your-azure-speech-ssml-clipped-script-file> content/4-Executing-the-workflow/azure-speech-output
+python content/4-Executing-the-workflow/generate_azure_speech.py content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/<your-azure-speech-ssml-clipped-script-file> .
 ```
 
 ### Full length audio
