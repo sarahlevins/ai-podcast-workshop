@@ -61,7 +61,7 @@ workflow = (
 Run the workflow in the Dev UI using the following command
 
 ```bash
-python content/2-Building_the_workflow/code/2-podcast-creation-workflow/workflow.py
+python content/3-Building_the_workflow/code/2-podcast-creation-workflow/workflow.py
 ```
 
 This launches the workflow in a web interface where you can:

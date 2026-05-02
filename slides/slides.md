@@ -546,7 +546,7 @@ Open the notebook and chat to each of your podcast agents one-by-one.
 <div class="pt-6">
 
 ```bash
-content/2-Building_the_workflow/code/1-meet-your-agents/your-podcast-studio-agents.ipynb
+content/3-Building_the_workflow/code/1-meet-your-agents/your-podcast-studio-agents.ipynb
 ```
 
 </div>
@@ -711,7 +711,7 @@ class: text-center
 # Exercise: run your first script generation
 
 ```bash
-python content/2-Building_the_workflow/code/2-podcast-creation-workflow/workflow.py
+python content/3-Building_the_workflow/code/2-podcast-creation-workflow/workflow.py
 ```
 
 <div class="pt-6 text-left max-w-md mx-auto">
