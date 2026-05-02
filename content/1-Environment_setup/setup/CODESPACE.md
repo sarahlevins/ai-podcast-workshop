@@ -14,7 +14,7 @@ When the "Create Codespace" page loads, choose:
 
 - **Branch:** `main`
 - **Region:** the closest one to you
-- **Machine type:** **2-core • 8 GB RAM • 32 GB storage** (the workshop is sized to fit this; bigger machines cost more though, so keep that in mind)
+- **Machine type:** **2-core • 8 GB RAM • 32 GB storage** (the workshop is sized to fit this; bigger machines cost more though, so keep that in mind). If that is not available, select 4-core 16 GB RAM 32 GB storage.
 
 Click **Create codespace**. The first launch should pull the prebuilt image and have you in a working VS Code session within a minute or two.
 
@@ -44,7 +44,7 @@ If you specifically want the Codespace to live on your own fork — e.g. you'll 
 
 ## Verify the environment
 
-Once the Codespace is open, you'll be in VS Code with the repo loaded. The dev container has Python, the workshop dependencies, and (in the prebuilt image) the Ollama models already in place. You don't need to run `pip install` — just open the [setup test notebook](../setup-test.ipynb) and pick the **AI Podcast Studio** kernel to confirm everything works.
+Once the Codespace is open, you'll be in VS Code with the repo loaded. The dev container has Python, the workshop dependencies, and (in the prebuilt image) the Ollama models already in place. You don't need to run `pip install`
 
 ---
 

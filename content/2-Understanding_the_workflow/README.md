@@ -59,11 +59,11 @@ The [`podcast-agent-builder-agent/`](podcast-agent-builder-agent) module runs an
 
 1. From the repo root, run:
    ```
-   cd /workspaces/ai-podcast-workshop && python content/2-Understanding_the_workflow/podcast-agent-builder-agent/agent-artifact-builder.py
+   python content/2-Understanding_the_workflow/podcast-agent-builder-agent/agent-artifact-builder.py
    ```
 2. When prompted, describe your podcast concept in a sentence or two.
-3. The agent will propose a host line-up — confirm or request changes. Make sure you only let it set 2 hosts!
-4. It writes the five artifacts to `content/2-Understanding_the_workflow/podcast-agent-artifacts/`.
+3. The agent will propose a host line-up — confirm or request changes. Make sure you only let it set 2 hosts (so the models can handle all that chatter!)
+4. It will write the five agent artifacts to `content/2-Understanding_the_workflow/podcast-agent-artifacts/`.
 
 ---
 

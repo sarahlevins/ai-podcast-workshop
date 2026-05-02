@@ -43,7 +43,7 @@ WORKFLOW:
 2. Decide on hosts.
    - If the user supplied custom host definitions: use them verbatim and
      skip to step 4.
-   - If not: read every file in templates/host-definition-templates/ and pick the
+   - If not: read every file in templates/host-definition-templates/ and pick ONLY
      2 hosts whose archetypes best fit the concept. Aim for
      complementary, not duplicative, dynamics (e.g. curious + expert,
      skeptic + storyteller, expert + comic relief).
@@ -73,6 +73,8 @@ WORKFLOW:
      research.txt, script-writer.txt, editor.txt, publisher.txt).
    - Create the podcast-agent-artifacts/ directory if it does not yet exist.
    - Do not modify any text outside the placeholders.
+   - Do not check  with the user for confirmation before writing the artifact
+     file to output. Just write all the files and let them know its done.
 
 6. Report back.
    - List the files written and the hosts used.

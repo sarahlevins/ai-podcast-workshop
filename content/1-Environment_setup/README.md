@@ -55,13 +55,20 @@ Once you have chosen and set up your model get the required values and populate 
 
 1. Copy the example .env
 ```bash
-cp .env.example /.env
+cp .env.example .env
 ```
 
 2. Edit `.env` to set your values as described in the table above
 
 ### 4. Test your setup
 
-Open the [Setup Test Notebook](./setup-test.ipynb) and select the appropriate **AI Podcast Studio** kernel from the kernel picker (under Jupyter Kernels, not Python Environments).
+Open the [Setup Test Notebook](./setup-test.ipynb) and run some commands that sets up some agents and sends some prompts to test everything is working correctly.
 
-Your requests to agents should show their responses
+When running the notebook, be sure to select the .venv as your python kernel
+
+1. Up the top right hand corner of the notebook file, select `Select Kernel`
+![Select Kernel](images/select-kernel.png)
+2. If you can't see this repo's .venv, select `Python Environments`
+![Python Environments](images/python-environments.png)
+3. Select this repos .venv file (the one at the bottom pictured here)
+![Select .venv](images/select-venv.png)
