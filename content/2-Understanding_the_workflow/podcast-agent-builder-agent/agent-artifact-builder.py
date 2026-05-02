@@ -1,30 +1,26 @@
 """
-Artifact Builder - Console Application
+Agent Artifact Builder - Console Application
 
-Interactively creates podcast agent artifacts from templates based on a user-provided concept.
-Presents each artifact one at a time for review before writing.
+Takes a brief podcast concept, asks the agent to expand it into a
+concept + 2 recommended hosts, confirms with the user, then
+programmatically fills the role templates and writes the artifacts.
 """
 
 import asyncio
+import json
 from pathlib import Path
 
-from agent_framework import AgentSession
-from agent import setup_builder_agent, WORKING_DIR
-
-ROLES = ["producer", "research", "script-writer", "editor", "publisher"]
-OUTPUT_DIR = WORKING_DIR / "podcast-agent-artifacts"
-
-
-async def stream_text(run) -> str:
-    """Stream agent response to console and return the full text."""
-    chunks = []
-    async for event in run:
-        text = getattr(event, "text", None)
-        if text:
-            print(text, end="", flush=True)
-            chunks.append(text)
-    print()
-    return "".join(chunks)
+from agent import (
+    HOST_FILES,
+    HOSTS_DIR,
+    OUTPUT_DIR,
+    ROLES,
+    TEMPLATES_DIR,
+    WORKING_DIR,
+    ConceptProposal,
+    parse_proposal,
+    setup_builder_agent,
+)
 
 
 def divider(char="-"):
@@ -37,73 +33,97 @@ def heading(title):
     divider("=")
 
 
+async def stream_text(run) -> str:
+    chunks = []
+    async for event in run:
+        text = getattr(event, "text", None)
+        if text:
+            print(text, end="", flush=True)
+            chunks.append(text)
+    print()
+    return "".join(chunks)
+
+
+def render_proposal(p: ConceptProposal):
+    print(f"Concept:     {p.podcast_concept}")
+    print(f"Title:       {p.podcast_title}")
+    print(f"Description: {p.podcast_concept_description}")
+    print(f"Hosts:       {', '.join(p.hosts)}")
+    if p.host_rationale:
+        print(f"Rationale:   {p.host_rationale}")
+
+
+def write_artifacts(proposal: ConceptProposal) -> list[Path]:
+    """Fill the role templates with string replacement and write to disk."""
+    unknown = [h for h in proposal.hosts if h not in HOST_FILES]
+    if unknown:
+        raise ValueError(f"Unknown host id(s): {unknown}")
+
+    host_definitions = "\n\n".join(
+        (HOSTS_DIR / HOST_FILES[h]).read_text().rstrip() for h in proposal.hosts
+    )
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    written = []
+    for role in ROLES:
+        template = (TEMPLATES_DIR / f"{role}.txt").read_text()
+        filled = (
+            template
+            .replace("{{PODCAST_CONCEPT}}", proposal.podcast_concept)
+            .replace("{{PODCAST_TITLE}}", proposal.podcast_title)
+            .replace("{{PODCAST_CONCEPT_DESCRIPTION}}", proposal.podcast_concept_description)
+            .replace("{{HOST_DEFINITIONS}}", host_definitions)
+        )
+        out_path = OUTPUT_DIR / f"{role}.txt"
+        out_path.write_text(filled)
+        written.append(out_path)
+    return written
+
+
 async def main():
     heading("Agent Artifact Builder")
 
-    agent = setup_builder_agent()
-    session = AgentSession()
-
-    # Get podcast concept
-    concept = input("\nDescribe your podcast concept: ").strip()
-    if not concept:
+    brief = input("\nDescribe your podcast concept (one or two sentences): ").strip()
+    if not brief:
         print("No concept provided. Exiting.")
         return
 
-    # Step 1: Parse concept and propose hosts
-    print()
-    divider()
-    print("Reading host templates and proposing hosts...\n")
-    await stream_text(agent.run(
-        f"{concept}\n\n"
-        "Read the host definition templates and propose 2-3 hosts that best fit this concept. "
-        "Show your proposals with one-line justifications. Do not generate any artifacts yet.",
-        stream=True,
-        session=session,
-    ))
+    from agent_framework import AgentSession
+    agent = setup_builder_agent()
+    session = AgentSession()
 
-    # Step 2: Host approval loop
+    prompt = brief
     while True:
+        print()
         divider()
-        answer = input("Happy with these hosts? (yes / describe changes): ").strip()
+        print("Proposing concept and hosts...\n")
+        raw = await stream_text(agent.run(prompt, stream=True, session=session))
+
+        try:
+            proposal = parse_proposal(raw)
+        except (json.JSONDecodeError, KeyError, AttributeError) as e:
+            print(f"\nCould not parse agent response ({e}). Asking it to retry...")
+            prompt = "Your previous response did not parse. Please respond again with a single ```json fenced block matching the schema."
+            continue
+
+        print()
+        divider()
+        render_proposal(proposal)
+        divider()
+
+        answer = input("Approve? (yes / describe changes): ").strip()
         if answer.lower() == "yes":
             break
-        print()
-        await stream_text(agent.run(answer, stream=True, session=session))
-
-    # Step 3: Generate and review each artifact in order
-    for role in ROLES:
-        while True:
-            print()
-            heading(f"Artifact: {role}")
-            await stream_text(agent.run(
-                f"Generate the {role} artifact by reading the {role} template and filling in "
-                f"the three placeholders. Show me the full content. Do not write the file yet.",
-                stream=True,
-                session=session,
-            ))
-
-            divider()
-            answer = input(f"Write this {role} artifact? (yes / describe changes): ").strip()
-
-            if answer.lower() == "yes":
-                print()
-                await stream_text(agent.run(
-                    f"Write the {role} artifact to podcast-agent-artifacts/{role}.txt now.",
-                    stream=True,
-                    session=session,
-                ))
-                print(f"  Saved: {OUTPUT_DIR / f'{role}.txt'}")
-                break
-            else:
-                print()
-                await stream_text(agent.run(
-                    f"Revise the {role} artifact: {answer}. Show me the revised content. Do not write the file yet.",
-                    stream=True,
-                    session=session,
-                ))
+        prompt = f"The user wants changes: {answer}. Revise and respond again in the same JSON format."
 
     print()
-    heading("All artifacts complete!")
+    heading("Writing artifacts")
+    written = write_artifacts(proposal)
+    for path in written:
+        print(f"  Wrote: {path.relative_to(WORKING_DIR)}")
+
+    print()
+    heading("Done")
     print(f"  Location: {OUTPUT_DIR}")
     print()
 

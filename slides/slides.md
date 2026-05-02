@@ -922,7 +922,7 @@ The Azure Speech path is the fastest and in my opinion best, but may not be the 
 
 <div class="p-3 rounded border">
   <div class="font-bold text-sm">🔁 Automated publishing pipeline</div>
-  <div class="text-xs opacity-70 pt-1">Schedule the full workflow on a cron — new episode every Monday on a topic pulled from a feed, news API, or your own backlog. The human-in-the-loop step can become a Slack approval instead of a terminal prompt.</div>
+  <div class="text-xs opacity-70 pt-1">Schedule the full workflow an azure function — new episode every Monday on a topic pulled from a feed, news API, or your own backlog. The human-in-the-loop step can become a Teams approval instead of a terminal prompt.</div>
 </div>
 
 </div>

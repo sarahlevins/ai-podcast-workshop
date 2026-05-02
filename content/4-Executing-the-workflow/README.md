@@ -60,35 +60,34 @@ Choose the model of your choice and start generating
 
 **One-time setup — install the VS Code Colab extension**
 
-1. Open the Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X`), search **Colaboratory**, and install the extension published by Google.
+1. Open the Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X`), search **Colab**, and install the extension published by Google.
+![alt text](images/colab.png)
 
 **Running the notebook**
 
-2. Open [vibevoice-1b.ipynb](./vibevoice-1b.ipynb) in VS Code.
-3. Click **Select Kernel** (top-right of the notebook) → **Select Another Kernel** → **Existing Jupyter Server** → **Connect to Colab**.
+2. Open [vibevoice-1b.ipynb](./vibevoice-1b.ipynb).
+3. Click **Select Kernel** (top-right of the notebook) → **Select Another Kernel** → **Colab**.
+![alt text](images/colab-kernal.png)
    VS Code will open a browser tab — sign in with your Google account.
-4. Back in VS Code, click **Select Kernel** again and choose the Colab server that just appeared.
-5. In the Colab browser tab, go to **Runtime → Change runtime type** → set Hardware accelerator to **T4 GPU** → **Save**.
-   > If you skip this the GPU check cell will warn you and inference will be extremely slow.
-6. Run the cells in order:
-
-   | Cell | What it does |
-   |------|-------------|
-   | **Install** | `pip install vibevoice soundfile` — takes ~1 min on first run |
-   | **Patch** | Applies None-guards to a known upstream bug in the VibeVoice inference code — safe to re-run |
-   | **GPU check** | Prints the GPU name — should say `Tesla T4`. If it says `none`, revisit step 5 |
-   | **Load model** | Downloads VibeVoice-1.5B weights from Hugging Face and loads them into GPU memory — ~3–5 min on first run, cached after |
-   | **Script** | Paste your episode script here. Each line must start with `speaker 1:` or `speaker 2:` |
-   | **Generate** | Runs inference — expect ~1–3 min for a short clip on a T4 |
-   | **Save & play** | Writes `episode_clip.wav` and plays it inline — right-click → Download to save |
+4. Back in VS Code, click **Select Kernel** again and choose the Colab option again, then `New Colab Server`. Create one and ensure it is `GPU`, `T4`, `Latest`, and name it something appropriate.
+![alt text](images/new-colab-server.png)
+5. After it has loaded you will be finally prompted to select the kernal. Select `Python 3 (ipykernal)`.
+6. Update your config at the top, and then run all the cells in the notebook to generate your audio.
 
 ### VibeVoice-7B
 1. Go to [lightning.ai](https://lightning.ai/) and sign up
-2. Create a A100 GPU machine
-3. create a file vibevoice.7b.sh in the workspace
-4. paste the contents of [vibevoice-7b.sh](./vibevoice-1b.ipynb) in
-5. run `chmod+x vibevoice-7b.sh` in the terminal
-6. run `./vibevoice-7b.sh`
+![alt text](images/lighting.png)
+2. Click next through the onboarding survey until you see this, and select A100, then click next
+![alt text](images/A100.png). You will be asked to verify your phone number
+3. Once your workspace loads, create a file `vibevoice-7b.sh` in the root
+4. Paste the contents of [vibevoice-7b.sh](./vibevoice-7b.sh) in
+5. Run `chmod +x ./vibe_voice_7b.sh` in the terminal
+6. Copy your clipped vibe voice script file into the workspace
+7. Run `./vibevoice-7b.sh` and pass in the name of your speakers and the file name
+
+```bash
+./vibe_voice_7b.sh ./my-script.txt Lucy Maya
+```
 7. Wait for your audio to be generated then download
 
 ### Azure Text-To-Speech
@@ -112,7 +111,11 @@ Alternernatively, you can use the script in this repo to access Azure Text-To-Sp
 7. 
 Run the following command from root to generate the audio from an SSML file.
 ```bash
-python content/4-Executing-the-workflow/generate_azure_speech.py content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/<your-azure-speech-ssml-clipped-script-file> content/4-Executing-the-workflow/output/azure-speech-output
+
+python generate_azure_speech.py <path to ssml script> <path to output folder>
+
+# from root
+python content/4-Executing-the-workflow/generate_azure_speech.py content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/<your-azure-speech-ssml-clipped-script-file> content/4-Executing-the-workflow/azure-speech-output
 ```
 
 ### Full length audio

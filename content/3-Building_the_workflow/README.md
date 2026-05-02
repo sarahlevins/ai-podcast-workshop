@@ -3,16 +3,19 @@
 ## Explore Agent Framework Dev UI
 
 The Dev UI lets you test agents interactively in a web interface.
-
-https://learn.microsoft.com/en-us/agent-framework/devui/?pivots=programming-language-python
+![Dev UI overview](images/devui-overview.png)
 
 - Chat with your agent in a browser
 - See tool calls and reasoning in real time
 - Test different prompts and instructions
 
+https://learn.microsoft.com/en-us/agent-framework/devui/?pivots=programming-language-python
+
 ## Explore Agent Framework Workflows
 
 Agent Framework workflows allow you to orchestrate complex workflows combining agents and programmatic tools, without getting bogged down in infrastructure complexity.
+
+![Agent Framework workflow overview](images/workflow-overview.png)
 
 https://learn.microsoft.com/en-us/agent-framework/workflows/
 
@@ -26,10 +29,10 @@ https://learn.microsoft.com/en-us/agent-framework/workflows/
 ## Our AI Podcast Studio Workflow Architecture
 
 ```
-TopicAgent -> ResearchAgent -> ScriptAgent -> ReviewExecutor -> EditAgent -> SaveExecutor
-                                                   ^                |
-                                                   |________________|
-                                                  (rejection loop)
+ProducerAgent -> ResearchAgent -> ScriptWriterAgent -> EditorAgent -> Human Confirmation -> PublisherAgent -> ArtifactWriter
+                                                                            ^         |
+                                                                            |_________|
+                                                                          (rejection loop)
 ```
 
 ### Building the workflow in code
@@ -69,3 +72,12 @@ This launches the workflow in a web interface where you can:
 - Watch each executor process its step
 - Approve or reject the generated script
 - See the final output saved to a file
+
+1. Expore the workflow on the left side of the screen using drag and drop
+2. Click the `Configure and Run` button
+![Configure and Run button](images/configure-and-run-button.png)
+3. Configure the workflow with the role as `user` (case sensitive) and the contents as the topic of the podcast episode you want a script for
+![Configure workflow input](images/configure-workflow-input.png)
+4. You will then be able to observe the agents working, and respond with confirmation where needed
+![Agents running in Dev UI](images/agents-running.png)
+5. When the editor and publisher ask for feedback and you're happy to proceed, ensure you follow its request and reply `yes` to continue

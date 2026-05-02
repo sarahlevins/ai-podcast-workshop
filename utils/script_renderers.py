@@ -83,14 +83,17 @@ def _strip_cues(text: str) -> str:
 # ── Renderer: VibeVoice ───────────────────────────────────────────────────────
 
 def render_vibevoice(items: list[Section | Turn]) -> str:
-    """Plain-text VibeVoice output. Emits 'Host: text' lines; tts.py remaps
-    host names to numbered speakers at inference time."""
+    """Plain-text VibeVoice output. Emits 'speaker N: text' lines."""
+    speaker_index: dict[str, int] = {}
     lines: list[str] = []
     for item in items:
         if isinstance(item, Turn):
             text = _strip_cues(item.text)
             if text:
-                lines.append(f"{item.host}: {text}")
+                if item.host not in speaker_index:
+                    speaker_index[item.host] = len(speaker_index) + 1
+                n = speaker_index[item.host]
+                lines.append(f"speaker {n}: {text}")
     return "\n".join(lines)
 
 
