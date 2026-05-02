@@ -13,8 +13,8 @@ from xml.sax.saxutils import escape as xml_escape
 
 
 DEFAULT_AZURE_VOICES: dict[str, str] = {
-    "Ken":  "en-US-AndrewMultilingualNeural",
-    "Maya": "en-US-AvaMultilingualNeural",
+    "Ken":  "en-GB-Ada:DragonHDLatestNeural",
+    "Maya": "en-GB-Ollie:DragonHDLatestNeural",
 }
 
 CLIP_WORD_LIMIT = 250  # ~1-2 min of spoken audio at podcast pace
@@ -204,7 +204,7 @@ def _render_turn_ssml(text: str) -> str:
 def render_ssml(
     items: list[Section | Turn],
     voices: dict[str, str] | None = None,
-    default_voice: str = "en-US-AvaMultilingualNeural",
+    default_voice: str = "en-GB-Ollie:DragonHDLatestNeural",
 ) -> str:
     """Render to a complete Azure SSML document. Unknown hosts fall back to
     `default_voice`."""
@@ -213,7 +213,7 @@ def render_ssml(
         '<speak version="1.0" '
         'xmlns="http://www.w3.org/2001/10/synthesis" '
         'xmlns:mstts="https://www.w3.org/2001/mstts" '
-        'xml:lang="en-US">'
+        'xml:lang="en-GB">'
     ]
     for item in items:
         if isinstance(item, Section):
