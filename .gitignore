@@ -13,3 +13,4 @@ __pycache__/
 ollama-models/
 podcast-agent-artifacts/
 2-podcast-creation-workflow/output/
+azure-speech-output/

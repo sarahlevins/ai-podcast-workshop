@@ -735,6 +735,43 @@ From script to two AI voices having a conversation
 
 ---
 
+# What is a GPU?
+
+<div class="grid grid-cols-2 gap-8 pt-2">
+
+<div>
+
+**GPU = Graphics Processing Unit**
+
+Originally designed to render graphics — thousands of small cores doing the same math in parallel.
+
+That same parallel structure makes GPUs extremely fast at the matrix multiplications that power AI models.
+
+</div>
+
+<div class="space-y-3">
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">CPU</div>
+  <div class="text-xs opacity-70">A few powerful cores · great at sequential tasks</div>
+</div>
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">GPU</div>
+  <div class="text-xs opacity-70">Thousands of smaller cores · great at parallel math</div>
+</div>
+
+<div class="p-3 rounded border bg-primary bg-opacity-10">
+  <div class="font-bold text-sm">Why it matters here</div>
+  <div class="text-xs opacity-70">Running an audio generation model requires GPU — a CPU would take minutes per sentence</div>
+</div>
+
+</div>
+
+</div>
+
+---
+
 # Our audio generation options
 
 <div class="grid grid-cols-3 gap-4 pt-2">
@@ -842,6 +879,52 @@ Pick the path that matches your setup.
 
 <div class="pt-6 opacity-80">
 The Azure Speech path is the fastest and in my opinion best, but may not be the cheapest.
+</div>
+
+---
+
+# Future opportunities
+
+<div class="grid grid-cols-2 gap-6 pt-2">
+
+<div class="space-y-4">
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">🎵 AI-generated music & sound design</div>
+  <div class="text-xs opacity-70 pt-1">Generate intro/outro music with <strong>Suno</strong> or <strong>Udio</strong>, export to WAV, host on Azure Blob Storage, then embed directly in SSML via <code>&lt;mstts:backgroundaudio&gt;</code> for a looping bed or <code>&lt;audio src="..."&gt;</code> for stings and transitions.</div>
+</div>
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">🗣️ Voice cloning</div>
+  <div class="text-xs opacity-70 pt-1">VibeVoice 1.5B/7B supports voice cloning from a short reference audio sample — supply a clip of yourself and the model matches your voice for the host. Azure offers Personal Voice as a paid feature on the S0 tier.</div>
+</div>
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">📡 RSS feed & podcast hosting</div>
+  <div class="text-xs opacity-70 pt-1">The publisher agent already generates a title, description, chapter markers, and social copy. Drop the WAV into a static host (GitHub Pages, Blob Storage) and point an RSS feed at it — that's all Spotify and Apple Podcasts need.</div>
+</div>
+
+</div>
+
+<div class="space-y-4">
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">🎙️ More expressive delivery</div>
+  <div class="text-xs opacity-70 pt-1">The script writer currently outputs plain dialogue. Extend it to emit SSML directly with per-line <code>mstts:express-as</code> styles — so Ken's dry humour gets a <code>sarcastic</code> tag and Maya's skepticism gets <code>unfriendly</code> at the right moments.</div>
+</div>
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">⚡ Real-time streaming</div>
+  <div class="text-xs opacity-70 pt-1">VibeVoice-Streaming-0.5B and Azure Speech's WebSocket API both support streaming output — audio starts playing before the full response is synthesized. Pair with a live research agent for genuinely reactive podcast conversations.</div>
+</div>
+
+<div class="p-3 rounded border">
+  <div class="font-bold text-sm">🔁 Automated publishing pipeline</div>
+  <div class="text-xs opacity-70 pt-1">Schedule the full workflow on a cron — new episode every Monday on a topic pulled from a feed, news API, or your own backlog. The human-in-the-loop step can become a Slack approval instead of a terminal prompt.</div>
+</div>
+
+</div>
+
 </div>
 
 ---

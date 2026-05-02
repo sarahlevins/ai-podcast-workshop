@@ -1,13 +1,13 @@
 """Synthesize an Azure Speech SSML file to a .wav using Azure AI Foundry's TTS API.
 
 Usage:
-    python synthesize_ssml.py <ssml_path> [<output_wav_path>]
+    python generate_azure_speech.py <ssml_path> <output_dir>
 
-If output path is omitted, writes alongside the SSML with a .wav extension.
+Output filename is derived from the SSML filename with a .wav extension.
 
 Reads credentials from environment (or a .env file in the repo root):
-    SPEECH_KEY    — Azure Speech resource key
-    SPEECH_REGION — Azure region, e.g. "eastus2"
+    AZURE_SPEECH_KEY    — Azure Speech resource key
+    AZURE_SPEECH_REGION — Azure region, e.g. "eastus2"
 """
 
 import os
@@ -15,13 +15,12 @@ import sys
 from pathlib import Path
 
 import azure.cognitiveservices.speech as speechsdk
-from dotenv import load_dotenv
-
+from utils import load_env
 
 def synthesize(ssml_path: Path, out_path: Path) -> None:
-    load_dotenv()
-    key = os.environ["SPEECH_KEY"]
-    region = os.environ["SPEECH_REGION"]
+    load_env()
+    key = os.environ["AZURE_SPEECH_KEY"]
+    region = os.environ["AZURE_SPEECH_REGION"]
 
     ssml = ssml_path.read_text(encoding="utf-8")
 
@@ -55,7 +54,7 @@ def synthesize(ssml_path: Path, out_path: Path) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) < 2:
+    if len(sys.argv) != 3:
         print(__doc__)
         sys.exit(1)
 
@@ -63,12 +62,9 @@ def main() -> None:
     if not ssml_path.exists():
         sys.exit(f"SSML file not found: {ssml_path}")
 
-    out_path = (
-        Path(sys.argv[2]).resolve()
-        if len(sys.argv) >= 3
-        else ssml_path.with_suffix(".wav")
-    )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(sys.argv[2]).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / ssml_path.with_suffix(".wav").name
 
     synthesize(ssml_path, out_path)
 

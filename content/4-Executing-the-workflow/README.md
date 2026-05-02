@@ -25,14 +25,64 @@ Three model sizes are available:
 
 The source code for VibeVoice itself is under 1 MB — the model weights are downloaded from Hugging Face on first run.
 
-### 1. VibeVoice-1.5B
-1. install the Colab extension
-2. Open the [vibevoice-1b.ipynb notebook](./vibevoice-1b.ipynb)
-3. Select other kernel, then select Colab
-4. Create a Colab server. GPU, T4
-5. Run the cells to generate your audio
+## Why Azure AI Speech
 
-### 2. VibeVoice-7B
+Azure AI Speech is Microsoft's managed cloud TTS service. It requires no GPU and no model download — you send an SSML document over HTTPS and get a WAV back in seconds. That makes it the fastest path from script to audio in a workshop setting, and it's the only option here that works on any machine without any setup beyond a resource key.
+
+The Dragon HD voices are also simply some of the highest quality neural TTS voices available today. They support a broad expressive style system — over 60 named styles like `cheerful`, `whispering`, `sarcastic`, `documentary-narration` — plus paralinguistics like `[laughter]` and `[sighing]` that you can drop inline into the SSML. For a two-host podcast conversation that needs to sound natural, this matters.
+
+### VibeVoice vs Azure Dragon HD: when to use which
+
+| | VibeVoice 1.5B / 7B | Azure Dragon HD |
+|---|---|---|
+| **Where it runs** | Your GPU (Colab T4 / Lightning A100) | Azure cloud — no GPU needed |
+| **Cost** | Free (Colab / Lightning free tier) | Pay-per-character (small, but not free) |
+| **Voice style control** | Implicit — driven by punctuation and word choice in the script | Explicit — `<mstts:express-as style="...">` tags in SSML |
+| **Speaker count** | Up to 4 distinct voices | Unlimited — one `<voice>` block per turn |
+| **Max audio length** | ~90 min (1.5B), ~45 min (7B) | 600 seconds per request (use Batch API for longer) |
+| **Voice cloning** | Yes — supply a reference audio sample | No (Personal Voice is a separate, paid feature) |
+| **Output quality** | Very expressive, slightly variable — the model makes judgment calls | Highly consistent and controlled |
+| **Latency** | Minutes (model load + inference) | Seconds |
+| **Best for** | Experimenting with open-source TTS, voice cloning, offline use | Quick iteration, production quality, no GPU access |
+
+For this workshop, Azure Speech is the most reliable way to hear your script as audio within the session. VibeVoice gives you more creative control and is worth running at home.
+
+[Azure AI Voice Gallery](https://ai.azure.com/explore/models/aiservices/Azure-AI-Speech/version/1/registry/azureml-cogsvc/tryout?tid=54ba0fd2-46b7-46d8-9f55-c1500e37a2c2#voicegallery)
+
+
+## Exercise: Generate your podcast audio
+
+Choose the model of your choice and start generating
+
+### VibeVoice-1.5B
+
+**Requirements:** A Google account. No local GPU needed — Colab provides one for free.
+
+**One-time setup — install the VS Code Colab extension**
+
+1. Open the Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X`), search **Colaboratory**, and install the extension published by Google.
+
+**Running the notebook**
+
+2. Open [vibevoice-1b.ipynb](./vibevoice-1b.ipynb) in VS Code.
+3. Click **Select Kernel** (top-right of the notebook) → **Select Another Kernel** → **Existing Jupyter Server** → **Connect to Colab**.
+   VS Code will open a browser tab — sign in with your Google account.
+4. Back in VS Code, click **Select Kernel** again and choose the Colab server that just appeared.
+5. In the Colab browser tab, go to **Runtime → Change runtime type** → set Hardware accelerator to **T4 GPU** → **Save**.
+   > If you skip this the GPU check cell will warn you and inference will be extremely slow.
+6. Run the cells in order:
+
+   | Cell | What it does |
+   |------|-------------|
+   | **Install** | `pip install vibevoice soundfile` — takes ~1 min on first run |
+   | **Patch** | Applies None-guards to a known upstream bug in the VibeVoice inference code — safe to re-run |
+   | **GPU check** | Prints the GPU name — should say `Tesla T4`. If it says `none`, revisit step 5 |
+   | **Load model** | Downloads VibeVoice-1.5B weights from Hugging Face and loads them into GPU memory — ~3–5 min on first run, cached after |
+   | **Script** | Paste your episode script here. Each line must start with `speaker 1:` or `speaker 2:` |
+   | **Generate** | Runs inference — expect ~1–3 min for a short clip on a T4 |
+   | **Save & play** | Writes `episode_clip.wav` and plays it inline — right-click → Download to save |
+
+### VibeVoice-7B
 1. Go to [lightning.ai](https://lightning.ai/) and sign up
 2. Create a A100 GPU machine
 3. create a file vibevoice.7b.sh in the workspace
@@ -41,15 +91,29 @@ The source code for VibeVoice itself is under 1 MB — the model weights are dow
 6. run `./vibevoice-7b.sh`
 7. Wait for your audio to be generated then download
 
-## Why Azure AI Speech
+### Azure Text-To-Speech
+The easiest way to test your script with Azure Text-To-Speech will be to use the Playground available in Azure AI Foundry.
 
-<insert why here>
+1. Go to your Foundry resource and select `Models`. Select the `AI Services` tab, and then select `Azure Speech - Text to Speech` and open in playground.
+2. Select the `Code` tab, and paste the contents of your Azure Speech SSML Clipped Script file into the 
 
-[Voice Gallery](https://ai.azure.com/explore/models/aiservices/Azure-AI-Speech/version/1/registry/azureml-cogsvc/tryout?tid=54ba0fd2-46b7-46d8-9f55-c1500e37a2c2#voicegallery)
+#### Programmatic script
+Alternernatively, you can use the script in this repo to access Azure Text-To-Speech via the Speech api.
 
-1. Ensure you have an Azure Foundry resource, and your FOUNDRY_API_KEY and FOUNDRY_REASONS environment variables set in `.env`
-2. run the following command 
-
+1. Go to the azure portal and search for speech services
+![alt text](images/image.png)
+2. Select create a new Speech resource
+![alt text](images/image-1.png)
+3. Select the same resource group you made earlier for this workshop or select a new one, come up with an appropriate name, and then select the `Free F0` tier.
+![alt text](images/image-2.png)
+4. Select `Review + Create` and then `Create`. When your resource is deployed, go to it.
+5. In your speech service you will see an Endpoint. The first part of the endpoint is the region of your resource. e.g. `https://eastus.api.cognitive.microsoft.com/` is `eastus`. Set this value as `AZURE_SPEECH_REGION` in your .env file
+6. You will see a link to manage keys on the home page of your speech resource, click that, and set one of those keys as the value of the `AZURE_SPEECH_KEY` in your .env file.
+7. 
+Run the following command from root to generate the audio from an SSML file.
 ```bash
-python /workspace/ai-podcast-workshop/content/3-Generating_the_audio/synthesize_ssml.py
+python content/4-Executing-the-workflow/generate_azure_speech.py content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/<your-azure-speech-ssml-clipped-script-file> content/4-Executing-the-workflow/output/azure-speech-output
 ```
+
+### Full length audio
+When you have more time, run the generation on the full length scripts of your podcasts, and then listen and enjoy!
