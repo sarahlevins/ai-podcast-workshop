@@ -13,8 +13,8 @@ from xml.sax.saxutils import escape as xml_escape
 
 
 DEFAULT_AZURE_VOICES: dict[str, str] = {
-    "Ken":  "en-GB-Ada:DragonHDLatestNeural",
-    "Maya": "en-GB-Ollie:DragonHDLatestNeural",
+    "Ken":  "en-AU-Lisa:MAI-Voice-2",
+    "Maya": "en-US-Ethan:MAI-Voice-2",
 }
 
 CLIP_WORD_LIMIT = 250  # ~1-2 min of spoken audio at podcast pace
@@ -206,7 +206,7 @@ def render_ssml(
     voices: dict[str, str] | None = None,
     speaker1: str | None = None,
     speaker2: str | None = None,
-    default_voice: str = "en-GB-Ollie:DragonHDLatestNeural",
+    default_voice: str = "en-US-Ethan:MAI-Voice-2",
 ) -> str:
     """Render to a complete Azure SSML document. Unknown hosts fall back to
     `default_voice`.
@@ -216,8 +216,8 @@ def render_ssml(
     """
     if speaker1 and speaker2:
         voice_map = {
-            speaker1: "en-GB-Ada:DragonHDLatestNeural",
-            speaker2: "en-GB-Ollie:DragonHDLatestNeural",
+            speaker1: "en-AU-Lisa:MAI-Voice-2",
+            speaker2: "en-US-Ethan:MAI-Voice-2",
         }
     else:
         voice_map = voices or DEFAULT_AZURE_VOICES
