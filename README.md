@@ -2,6 +2,10 @@
 
 Build an AI-powered podcast production pipeline using Microsoft Agent Framework.
 
+> **Browse this repo's docs in the browser at http://localhost:3000**
+>
+> If not running, enable access to Docklify by running `python -m http.server 3000'
+
 ## Workshop Overview
 
 In this 60-minute hands-on workshop, you'll translate the real-world process of making a podcast into an AI orchestration workflow. You'll define AI agents with distinct roles, wire them together using the Microsoft Agent Framework SDK, and produce a podcast script from idea to audio.

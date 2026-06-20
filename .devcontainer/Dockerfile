@@ -19,24 +19,3 @@ RUN python -m ipykernel install --name workshop --display-name "Workshop (Python
 RUN echo 'source /opt/venv/bin/activate' >> /home/vscode/.bashrc \
     && chown vscode:vscode /home/vscode/.bashrc
 
-# ---------------------------------------------------------------------------
-# Optional: Ollama (local LLM). Uncomment the blocks below to bake Ollama and
-# a pre-pulled model into the image. When re-enabling, also restore the
-# `postStartCommand` and the `11434` port forward in devcontainer.json.
-# ---------------------------------------------------------------------------
-
-# Install Ollama (also requires zstd for model-blob decompression).
-RUN apt-get update \
-    && apt-get install -y zstd \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL https://ollama.com/install.sh | sh
-
-# Pre-pull a model into the vscode user's home so `ollama serve` finds it at runtime.
-USER vscode
-RUN ollama serve & \
-    SERVE_PID=$! && \
-    sleep 5 && \
-    ollama pull llama3.2:3b && \
-    kill $SERVE_PID && \
-    wait $SERVE_PID 2>/dev/null || true
-USER root

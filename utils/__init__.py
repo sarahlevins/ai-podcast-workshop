@@ -17,6 +17,5 @@ __all__ = [
     "parse_source",
     "render_ssml",
     "render_vibevoice",
-    "stream_response",
-    "web_search",
+    "stream_response"
 ]

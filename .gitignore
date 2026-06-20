@@ -10,7 +10,11 @@ __pycache__/
 # Local env
 .env
 
-ollama-models/
+# Utils
+.nojekyll
+.claude
+
+# Artifacts
 podcast-agent-artifacts/
 2-podcast-creation-workflow/output/
 azure-speech-output/

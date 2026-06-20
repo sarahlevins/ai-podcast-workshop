@@ -9,7 +9,8 @@
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "ms-toolsai.jupyter"
+        "ms-toolsai.jupyter",
+        "anthropic.claude-code"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/opt/venv/bin/python",
@@ -22,13 +23,9 @@
     }
   },
   "postCreateCommand": "pip install -e .",
-  "postStartCommand": "OLLAMA_CONTEXT_LENGTH=32768 nohup ollama serve > /tmp/ollama.log 2>&1 & sleep 3 && ollama run llama3.2:3b \"pre-warm yourself. just respond with 'yes'. dont think.\" --keepalive 1h",
-  "forwardPorts": [8888],
+  "postStartCommand": "python -m http.server 3000",
+  "forwardPorts": [3000, 8888],
   "portsAttributes": {
-    "// 11434": {
-      "label": "Ollama",
-      "onAutoForward": "silent"
-    },
     "8888": {
       "label": "Jupyter",
       "onAutoForward": "notify"
