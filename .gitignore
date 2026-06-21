@@ -19,6 +19,7 @@ podcast-agent-artifacts/
 2-podcast-creation-workflow/output/
 azure-speech-output/
 content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/
+content/1-Environment_setup/resources/infra.json
 
 # Generated output (keep the example file)
 output/*

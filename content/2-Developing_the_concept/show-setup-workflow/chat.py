@@ -18,7 +18,6 @@ import asyncio
 import json
 import re
 import sys
-import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -340,27 +339,27 @@ def build_show_context(cfg: ShowConfig) -> str:
     hosts_section = "\n".join(_host_context_block(h) for h in cfg.hosts)
     segments_list = "\n".join(f"- {s}" for s in cfg.segments)
 
-    return textwrap.dedent(f"""\
-        # Show Context: {cfg.show_name}
-
-        ## Identity
-        - **Name / Tagline:** {cfg.show_name} — {cfg.tagline}
-        - **Format:** {cfg.format}
-        - **Target audience:** {cfg.audience}
-        - **Tone:** {cfg.tone}
-        - **Brand voice notes:** {cfg.brand_voice}
-
-        ## Recurring Segments
-        {segments_list}
-
-        ## Hosts
-
-        {hosts_section.rstrip()}
-
-        ## Episode History
-
-        (Appended after each episode — lets agents avoid topic repetition and build callbacks)
-        """)
+    return (
+        f"# Show Context: {cfg.show_name}\n"
+        f"\n"
+        f"## Identity\n"
+        f"- **Name / Tagline:** {cfg.show_name} — {cfg.tagline}\n"
+        f"- **Format:** {cfg.format}\n"
+        f"- **Target audience:** {cfg.audience}\n"
+        f"- **Tone:** {cfg.tone}\n"
+        f"- **Brand voice notes:** {cfg.brand_voice}\n"
+        f"\n"
+        f"## Recurring Segments\n"
+        f"{segments_list}\n"
+        f"\n"
+        f"## Hosts\n"
+        f"\n"
+        f"{hosts_section.rstrip()}\n"
+        f"\n"
+        f"## Episode History\n"
+        f"\n"
+        f"(Appended after each episode — lets agents avoid topic repetition and build callbacks)\n"
+    )
 
 
 def _build_host_agent(cfg: ShowConfig, host: HostConfig) -> str:

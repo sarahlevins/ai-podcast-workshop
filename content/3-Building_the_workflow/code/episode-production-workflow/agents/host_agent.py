@@ -23,14 +23,12 @@ def _host_slug(name: str) -> str:
 
 
 def parse_host_names(show_context: str) -> list[str]:
-    """Extract host names from the ### Name sections in show_context.md."""
-    names = []
-    for section in re.split(r"^### (.+)$", show_context, flags=re.MULTILINE)[1::2]:
-        name = section.strip()
-        # Skip sections that aren't host entries (e.g. Episode History sub-headers)
-        if name and not name.startswith("Episode"):
-            names.append(name)
-    return names
+    """Extract host names from the ### Name sections within the ## Hosts block."""
+    hosts_match = re.search(r"^## Hosts\s*\n(.*?)(?=^## |\Z)", show_context, flags=re.MULTILINE | re.DOTALL)
+    if not hosts_match:
+        return []
+    hosts_section = hosts_match.group(1)
+    return [s.strip() for s in re.split(r"^### (.+)$", hosts_section, flags=re.MULTILINE)[1::2] if s.strip()]
 
 
 def create_host_agents(show_context: str) -> list[tuple[str, object]]:

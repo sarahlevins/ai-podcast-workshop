@@ -93,7 +93,6 @@ For each host: a name, a persona description, a niche expertise area, and three 
 - **Niche:** Theory synthesis and spotting narrative patterns across seasons
 - **Voice IDs:**
   - vibevoice: Carter
-  - azure-ssml: en-US-AndrewMultilingualNeural
   - mai2: en-US-Liam:MAI-Voice-2
 ```
 

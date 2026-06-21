@@ -20,7 +20,6 @@
 - **Niche:** Backend systems, reliability engineering, on-call culture
 - **Voice IDs:**
   - vibevoice: Carter
-  - azure-ssml: en-US-AndrewMultilingualNeural
   - mai2: en-US-Ethan:MAI-Voice-2
 
 ### Sam
@@ -28,7 +27,6 @@
 - **Niche:** Software architecture, developer experience, tooling
 - **Voice IDs:**
   - vibevoice: Alice
-  - azure-ssml: en-US-AvaMultilingualNeural
   - mai2: en-US-Ava:MAI-Voice-2
 
 ## Episode History

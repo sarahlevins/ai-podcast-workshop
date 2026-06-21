@@ -7,6 +7,7 @@ from .script_renderers import (
     render_vibevoice,
 )
 from .streaming import stream_response
+from .run_logger import WorkflowRunLogger, RunJsonlSpanExporter
 
 __all__ = [
     "AgentOptions",
@@ -16,5 +17,7 @@ __all__ = [
     "parse_source",
     "render_ssml",
     "render_vibevoice",
-    "stream_response"
+    "stream_response",
+    "WorkflowRunLogger",
+    "RunJsonlSpanExporter"
 ]
