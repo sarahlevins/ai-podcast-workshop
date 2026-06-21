@@ -7,8 +7,8 @@
   - [Local Setup](content/1-Environment_setup/setup/local.md)
   - [Ollama](content/1-Environment_setup/setup/ollama.md)
 
-- **Step 2 - Understanding the Workflow**
-  - [Overview](content/2-Understanding_the_workflow/readme.md)
+- **Step 2 - Developing the concept**
+  - [Overview](content/2-Developing_the_concept/readme.md)
 
 - **Step 3 - Building the Workflow**
   - [Overview](content/3-Building_the_workflow/readme.md)

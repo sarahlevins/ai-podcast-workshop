@@ -19,3 +19,7 @@ podcast-agent-artifacts/
 2-podcast-creation-workflow/output/
 azure-speech-output/
 content/3-Building_the_workflow/code/2-podcast-creation-workflow/output/
+
+# Generated output (keep the example file)
+output/*
+!output/show_context_example.md
