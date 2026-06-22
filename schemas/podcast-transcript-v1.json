@@ -1,0 +1,308 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "podcast-transcript/v1",
+  "title": "Podcast Transcript",
+  "description": "Schema for realistic multi-speaker podcast transcripts intended for text-to-speech rendering. Overlapping speech and reactions are anchored to specific words or phrases in other utterances via the anchor field.",
+  "type": "object",
+  "required": ["$schema", "show", "episode", "hosts", "utterances"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "podcast-transcript/v1"
+    },
+    "show": {
+      "type": "string",
+      "description": "Name of the podcast show."
+    },
+    "episode": {
+      "type": "string",
+      "description": "Title of this episode."
+    },
+    "hosts": {
+      "type": "array",
+      "description": "All speakers who appear in this transcript.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/Host"
+      }
+    },
+    "utterances": {
+      "type": "array",
+      "description": "Ordered list of all speech acts and reactions. A single speaker may produce multiple consecutive utterances. Order reflects narrative sequence, not strict speaker alternation.",
+      "items": {
+        "$ref": "#/definitions/Utterance"
+      }
+    }
+  },
+  "definitions": {
+    "Host": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Short identifier used in utterances[].speaker. Lowercase, no spaces.",
+          "examples": ["alex", "jamie"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Full display name.",
+          "examples": ["Alex Chen", "Jamie Okafor"]
+        },
+        "voices": {
+          "type": "array",
+          "description": "Optional TTS voice references for this speaker, one per provider. Looked up by provider name at render time.",
+          "items": {
+            "$ref": "#/definitions/VoiceRef"
+          }
+        }
+      }
+    },
+    "VoiceRef": {
+      "type": "object",
+      "required": ["provider", "voice_id"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "The TTS provider this voice_id belongs to.",
+          "examples": ["mai-2", "vibevoice"]
+        },
+        "voice_id": {
+          "type": "string",
+          "description": "The provider-specific voice identifier."
+        }
+      }
+    },
+    "Utterance": {
+      "type": "object",
+      "required": ["id", "speaker", "type", "text", "delivery"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique utterance identifier.",
+          "examples": ["u001", "u042"]
+        },
+        "speaker": {
+          "type": "string",
+          "description": "References hosts[].id. The person producing this audio."
+        },
+        "type": {
+          "type": "string",
+          "description": "Classification of the utterance. Affects how the renderer treats timing and audio.",
+          "enum": ["speech", "interjection", "backchannel", "reaction"],
+          "enumDescriptions": [
+            "Normal speech. The speaker may hold the floor for as long as needed across one or more consecutive utterances.",
+            "Speaker cuts in or talks over another speaker.",
+            "Brief affirmation while another speaker holds the floor: 'mm-hmm', 'yeah', 'right'.",
+            "Non-verbal or near-verbal reaction: laughter, gasp, sigh. text is often empty."
+          ]
+        },
+        "text": {
+          "type": "string",
+          "description": "The words spoken. Empty string for pure non-verbal reactions. No SSML or markup — keep this clean so it can be fed to any TTS backend."
+        },
+        "anchor": {
+          "$ref": "#/definitions/Anchor",
+          "description": "Optional. For interjections, backchannels, and reactions: identifies the exact moment in another utterance that triggered this one. Used by editors and mixers to sync placement."
+        },
+        "reaction": {
+          "$ref": "#/definitions/Reaction",
+          "description": "Required when type is 'reaction'. Describes the non-verbal event."
+        },
+        "delivery": {
+          "$ref": "#/definitions/Delivery",
+          "description": "Speech characterisation cues for the TTS renderer or voice director."
+        }
+      },
+      "if": {
+        "properties": { "type": { "const": "reaction" } }
+      },
+      "then": {
+        "required": ["reaction"]
+      }
+    },
+    "Delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "emotion": {
+          "type": "string",
+          "description": "Dominant emotional register for this turn. Used to select TTS style or guide a voice director.",
+          "examples": [
+            "neutral",
+            "excited",
+            "curious",
+            "skeptical",
+            "amused",
+            "nervous",
+            "earnest",
+            "building_excitement",
+            "deadpan",
+            "warm",
+            "mock_serious"
+          ]
+        },
+        "pace": {
+          "type": "string",
+          "description": "Speaking speed relative to the host's natural baseline.",
+          "enum": ["slow", "slightly_slow", "normal", "slightly_fast", "fast"]
+        },
+        "volume": {
+          "type": "string",
+          "description": "Loudness relative to the host's natural baseline.",
+          "enum": ["soft", "slightly_soft", "normal", "slightly_loud", "loud"]
+        },
+        "emphasis": {
+          "type": "array",
+          "description": "Words or short phrases within text that should receive strong stress. Must appear verbatim in text.",
+          "items": { "type": "string" },
+          "examples": [["literally", "rewiring"], ["wait"]]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Free-form instruction for nuance that structured fields cannot express. Written for a voice director or a capable TTS system prompt.",
+          "examples": [
+            "Trailing off, inviting a response.",
+            "Stresses 'literally' twice for comedic effect, slight pause before 'rewiring'.",
+            "Sharp intake of breath before the word, clearly cutting in.",
+            "Warm, genuine laughter — not performative."
+          ]
+        }
+      }
+    },
+    "Anchor": {
+      "type": "object",
+      "required": ["utterance_id", "phrase"],
+      "additionalProperties": false,
+      "description": "Pins this utterance to a specific word or phrase in another utterance. utterance_id must match an existing Utterance.id; phrase must appear verbatim in that utterance's text.",
+      "properties": {
+        "utterance_id": {
+          "type": "string",
+          "description": "The id of the utterance this reaction or interjection is responding to."
+        },
+        "phrase": {
+          "type": "string",
+          "description": "The word or short phrase within the referenced utterance that triggered this response. Must appear verbatim in the referenced utterance's text. Used as the sync point for mixing."
+        }
+      }
+    },
+    "Reaction": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "The type of non-verbal or near-verbal sound.",
+          "enum": [
+            "laugh",
+            "chuckle",
+            "giggle",
+            "gasp",
+            "sharp_inhale",
+            "sigh",
+            "groan",
+            "scoff",
+            "hmm",
+            "tsk"
+          ]
+        },
+        "intensity": {
+          "type": "string",
+          "description": "How strong the reaction is.",
+          "enum": ["light", "moderate", "strong"]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "$schema": "podcast-transcript/v1",
+      "show": "The Deep Dive",
+      "episode": "The Future of Sleep",
+      "hosts": [
+        {
+          "id": "alex",
+          "name": "Alex Chen",
+          "voices": [
+            { "provider": "mai-2", "voice_id": "mai2-voice-001" },
+            { "provider": "vibevoice", "voice_id": "vv-voice-001" }
+          ]
+        },
+        {
+          "id": "jamie",
+          "name": "Jamie Okafor",
+          "voices": [
+            { "provider": "mai-2", "voice_id": "mai2-voice-002" },
+            { "provider": "vibevoice", "voice_id": "vv-voice-002" }
+          ]
+        }
+      ],
+      "utterances": [
+        {
+          "id": "u001",
+          "speaker": "alex",
+          "type": "speech",
+          "text": "So the study found that people who sleep fewer than six hours are literally — and I mean literally — rewiring their brain.",
+          "delivery": {
+            "emotion": "building_excitement",
+            "pace": "normal",
+            "volume": "normal",
+            "emphasis": ["literally", "rewiring"],
+            "notes": "Stresses 'literally' twice for comedic effect. Slight pause before 'rewiring'."
+          }
+        },
+        {
+          "id": "u002",
+          "speaker": "jamie",
+          "type": "interjection",
+          "text": "Wait—",
+          "anchor": {
+            "utterance_id": "u001",
+            "phrase": "rewiring their brain"
+          },
+          "delivery": {
+            "emotion": "surprised",
+            "pace": "fast",
+            "volume": "normal",
+            "notes": "Sharp inhale just before the word. Clearly cutting in."
+          }
+        },
+        {
+          "id": "u003",
+          "speaker": "alex",
+          "type": "reaction",
+          "text": "",
+          "anchor": {
+            "utterance_id": "u001",
+            "phrase": "rewiring their brain"
+          },
+          "reaction": {
+            "kind": "chuckle",
+            "intensity": "light"
+          },
+          "delivery": {
+            "notes": "Brief self-aware chuckle — knows the claim sounds wild."
+          }
+        },
+        {
+          "id": "u004",
+          "speaker": "jamie",
+          "type": "speech",
+          "text": "Okay, no, hold on. What does 'rewiring' even mean here? Are we talking metaphor or are they actually seeing this on scans?",
+          "delivery": {
+            "emotion": "skeptical_curious",
+            "pace": "slightly_fast",
+            "volume": "normal",
+            "emphasis": ["rewiring", "metaphor", "scans"],
+            "notes": "Leans on 'rewiring' mockingly. Genuine curiosity takes over for the second question."
+          }
+        }
+      ]
+    }
+  ]
+}

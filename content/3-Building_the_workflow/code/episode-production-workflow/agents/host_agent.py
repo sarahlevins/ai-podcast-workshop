@@ -49,3 +49,27 @@ def create_host_agents(show_context: str) -> list[tuple[str, object]]:
         ))
         agents.append((name, agent))
     return agents
+
+
+def create_recording_host_agents(show_context: str) -> list[tuple[str, object]]:
+    """Return a list of (host_name, agent) tuples using the recording-mode host files.
+
+    Loads host-{slug}-recording.md instead of host-{slug}.md so hosts output
+    structured ---UTTERANCE--- blocks during a live recording session.
+    """
+    agents = []
+    for name in parse_host_names(show_context):
+        slug = _host_slug(name)
+        host_file = AGENTS_DIR / f"host-{slug}-recording.md"
+        if not host_file.exists():
+            raise FileNotFoundError(
+                f"Recording host agent file not found: {host_file}\n"
+                f"Expected a -recording.md variant alongside the standard host file."
+            )
+        instructions = show_context + "\n\n---\n\n" + host_file.read_text()
+        agent = create_agent(AgentOptions(
+            name=f"Host_{name}_Recording",
+            instructions=instructions,
+        ))
+        agents.append((name, agent))
+    return agents
