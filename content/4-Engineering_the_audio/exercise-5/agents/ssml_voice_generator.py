@@ -1,9 +1,12 @@
-"""Script Formatter agent — loads output/agents/script-formatter.md."""
+"""SSML Voice Generator agent — loads output/agents/ssml-voice-generator.md.
+
+Converts transcript.json to MAI-2 SSML format.
+"""
 
 import sys
 from pathlib import Path
 
-WORKSPACE = Path(__file__).resolve().parents[5]
+WORKSPACE = Path(__file__).resolve().parents[4]
 if str(WORKSPACE) not in sys.path:
     sys.path.insert(0, str(WORKSPACE))
 
@@ -12,9 +15,9 @@ from utils.agents import create_agent, AgentOptions  # noqa: E402
 AGENTS_DIR = WORKSPACE / "output" / "agents"
 
 
-def create_script_formatter(show_context: str):
-    role_def = (AGENTS_DIR / "script-formatter.md").read_text()
+def create_ssml_voice_generator(show_context: str):
+    role_def = (AGENTS_DIR / "ssml-voice-generator.md").read_text()
     return create_agent(AgentOptions(
-        name="ScriptFormatter",
+        name="SSMLVoiceGenerator",
         instructions=show_context + "\n\n---\n\n" + role_def,
     ))

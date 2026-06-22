@@ -8,6 +8,7 @@ from .script_renderers import (
 )
 from .streaming import stream_response
 from .run_logger import WorkflowRunLogger, RunJsonlSpanExporter
+from .workspace import move_to_repo_root
 
 __all__ = [
     "AgentOptions",
@@ -19,5 +20,6 @@ __all__ = [
     "render_vibevoice",
     "stream_response",
     "WorkflowRunLogger",
-    "RunJsonlSpanExporter"
+    "RunJsonlSpanExporter",
+    "move_to_repo_root"
 ]

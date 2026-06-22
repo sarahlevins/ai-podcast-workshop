@@ -7,7 +7,7 @@ manages segment transitions. The raw conversation is assembled into a structured
 transcript (schemas/podcast-transcript-v1.json).
 
 Run:
-    python content/3-Building_the_workflow/code/episode-production-workflow/podcast-recording.py
+    python content/3-Building_the_workflow/exercise-4/workflow.py
 
 Phases:
   0. Research         — Researcher produces notes on the episode topic.

@@ -27,10 +27,9 @@ WORKSPACE = Path(__file__).resolve().parents[3]
 if str(WORKSPACE) not in sys.path:
     sys.path.insert(0, str(WORKSPACE))
 
-from dotenv import load_dotenv  # noqa: E402
-load_dotenv(WORKSPACE / ".env")
 
-from utils.agents import create_agent, AgentOptions  # noqa: E402
+from utils import load_env, create_agent, AgentOptions
+load_env() 
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
