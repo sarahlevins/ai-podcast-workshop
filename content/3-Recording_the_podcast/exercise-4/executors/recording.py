@@ -74,7 +74,7 @@ class RecordingState:
     # Utterances produced in the current segment
     turns_in_segment: int = 0
     # Soft turn limit for the current segment (set by producer brief)
-    soft_turn_limit: int = 8
+    soft_turn_limit: int = 3
     # Ordered list of segment dicts parsed from the producer brief
     segments: list[dict] = field(default_factory=list)
     current_segment_idx: int = 0
@@ -83,11 +83,13 @@ class RecordingState:
     # Total utterances recorded
     utterance_count: int = 0
     # How often (in utterances) to check in with the producer
-    PRODUCER_CHECK_INTERVAL: int = 5
+    PRODUCER_CHECK_INTERVAL: int = 3
     # Per-host compact research digest (host_id → digest text)
     host_digests: dict = field(default_factory=dict)
     # Rolling summary of covered topics/segments produced by the producer at check-ins
     session_summary: str = ""
+    # Target episode duration in minutes, parsed from show_context.md
+    target_duration_minutes: float = 5.0
 
 
 _rec = RecordingState()
@@ -107,7 +109,14 @@ def _build_context(system_note: str = "", host_id: str = "") -> str:
     A producer-generated session summary fills the gap for older context.
     """
     recent_log = _rec.recording_log[-10:]
-    log_text = "\n\n".join(recent_log) if recent_log else "(nothing yet)"
+
+    if len(recent_log) > 1:
+        earlier = "\n\n".join(recent_log[:-1])
+        log_text = f"### Earlier in this segment\n{earlier}\n\n### Most recent utterance\n{recent_log[-1]}"
+    elif recent_log:
+        log_text = f"### Most recent utterance\n{recent_log[0]}"
+    else:
+        log_text = "(nothing yet)"
 
     lines = [f"Episode brief: {_rec.brief}"]
 
@@ -142,20 +151,22 @@ def _parse_producer_brief(text: str) -> None:
         return
     content = brief_match.group(1)
 
+    # Split on each "- name:" entry so soft_turn_limit is parsed within its own segment block.
     segments = []
-    for seg_match in re.finditer(r"- name:\s*(.+)", content):
-        segments.append({"name": seg_match.group(1).strip(), "soft_turn_limit": 8})
-
-    # Extract per-segment soft_turn_limit if present
-    for limit_match in re.finditer(r"soft_turn_limit:\s*(\d+)", content):
-        idx = len(segments) - 1
-        if idx >= 0:
-            segments[idx]["soft_turn_limit"] = int(limit_match.group(1))
+    for seg_block in re.split(r"\n(?=\s*- name:)", content):
+        name_match = re.search(r"- name:\s*(.+)", seg_block)
+        if not name_match:
+            continue
+        limit_match = re.search(r"soft_turn_limit:\s*(\d+)", seg_block)
+        segments.append({
+            "name": name_match.group(1).strip(),
+            "soft_turn_limit": int(limit_match.group(1)) if limit_match else 3,
+        })
 
     if segments:
         _rec.segments = segments
         _rec.current_segment = segments[0]["name"]
-        _rec.soft_turn_limit = segments[0].get("soft_turn_limit", 8)
+        _rec.soft_turn_limit = segments[0].get("soft_turn_limit", 3)
 
 
 def _advance_segment() -> bool:
@@ -165,9 +176,45 @@ def _advance_segment() -> bool:
         return False
     seg = _rec.segments[_rec.current_segment_idx]
     _rec.current_segment = seg["name"]
-    _rec.soft_turn_limit = seg.get("soft_turn_limit", 8)
+    _rec.soft_turn_limit = seg.get("soft_turn_limit", 3)
     _rec.turns_in_segment = 0
     return True
+
+
+# Conversational podcast speech averages ~130 words/minute including natural pauses.
+_WORDS_PER_MINUTE = 130
+
+
+def _timing_summary() -> str:
+    """Return a one-line timing status string for the producer check-in.
+
+    Counts words in the text field of every logged utterance, converts to
+    minutes at _WORDS_PER_MINUTE, and reports elapsed vs target vs remaining.
+    """
+    total_words = 0
+    for entry in _rec.recording_log:
+        m = re.search(r'text:\s*"(.*)"', entry)  # greedy — handles internal quotes
+        if m:
+            total_words += len(m.group(1).split())
+
+    elapsed = total_words / _WORDS_PER_MINUTE
+    target = _rec.target_duration_minutes
+    remaining = max(0.0, target - elapsed)
+
+    elapsed_str = f"{int(elapsed)}:{int((elapsed % 1) * 60):02d}"
+    target_str = f"{int(target)}:00"
+    remaining_str = f"{int(remaining)}:{int((remaining % 1) * 60):02d}"
+
+    urgency = ""
+    if remaining <= 0:
+        urgency = " ⚠ OVER TIME — wrap up immediately."
+    elif remaining < 1.0:
+        urgency = " ⚠ Under 1 minute left — begin outro."
+
+    return (
+        f"Estimated time: ~{elapsed_str} elapsed / {target_str} target / "
+        f"~{remaining_str} remaining.{urgency}"
+    )
 
 
 # ── Executors ─────────────────────────────────────────────────────────────────
@@ -196,6 +243,14 @@ class RecordingResearchExecutor(Executor):
         _rec.session_done = False
         _rec.host_digests = {}
         _rec.session_summary = ""
+
+        # Parse target duration from show context (e.g. "~5 minutes per episode")
+        try:
+            show_text = SHOW_CONTEXT_PATH.read_text()
+            m = re.search(r"~?(\d+(?:\.\d+)?)\s*min", show_text, re.IGNORECASE)
+            _rec.target_duration_minutes = float(m.group(1)) if m else 5.0
+        except Exception:
+            _rec.target_duration_minutes = 5.0
 
         _start_run_logging()
         if _run_logger.run_log_dir:
@@ -459,7 +514,15 @@ class ChatRoomExecutor(Executor):
     def _host_name(self, host_id: str) -> str:
         return self._host_a_name if host_id == self._host_a_id else self._host_b_name
 
-    def _speech_request(self, note: str = "", host_id: str = "") -> AgentExecutorRequest:
+    def _speech_request(self, note: str = "", host_id: str = "", last_utterance: str = "") -> AgentExecutorRequest:
+        if last_utterance:
+            other_name = self._host_a_name if host_id == self._host_b_id else self._host_b_name
+            respond_note = (
+                f"Your co-host {other_name} just said:\n\"{last_utterance}\"\n\n"
+                "Respond to that specifically — answer their question, build on their point, "
+                "or push back. Don't introduce a new topic until you've engaged with what they said."
+            )
+            note = (respond_note + "\n\n" + note).strip() if note else respond_note
         return AgentExecutorRequest(
             messages=[Message(role="user", contents=[_build_context(note, host_id=host_id)])],
             should_respond=True,
@@ -492,11 +555,13 @@ class ChatRoomExecutor(Executor):
                     contents=[
                         turn.context
                         + "\n\n## Task\n"
-                        "Give a single brief sentence directing the hosts to begin. "
-                        "Pose the opening question from your brief, in your own voice, as if you're "
-                        "speaking directly to the hosts in the studio. "
+                        "Open the recording session. In your own voice, as if speaking directly to the "
+                        "hosts in the studio, give them their opening direction. This should cover:\n"
+                        "1. A welcome cue — tell the first host to welcome the listeners and introduce "
+                        "the show and this episode's topic.\n"
+                        "2. The opening question or angle from your brief to kick off the Cold Open.\n\n"
                         "Do not use ---PRODUCER-BRIEF--- or CONTINUE format — use the ---PRODUCER--- block "
-                        "with action: REDIRECT. Keep the message field to one sentence."
+                        "with action: REDIRECT."
                     ],
                 )],
                 should_respond=True,
@@ -536,17 +601,43 @@ class ChatRoomExecutor(Executor):
         other_host = self._other_host(msg.host_id)
 
         if self._reaction_pending:
-            # Got the reaction. The reactor (msg.host_id) now takes the speech floor.
             self._reaction_pending = False
-            await self._advance(next_speaker=msg.host_id, next_listener=other_host, ctx=ctx)
+            if is_empty_backchannel:
+                # Silent pass — the original speaker keeps the floor so they don't
+                # answer their own question when the reactor had nothing to add.
+                await self._advance(next_speaker=other_host, next_listener=msg.host_id, ctx=ctx)
+            else:
+                # The reactor said something — they earned the floor.
+                await self._advance(next_speaker=msg.host_id, next_listener=other_host, ctx=ctx)
         else:
             # Got a speech utterance. Ask the other host to react.
             self._reaction_pending = True
             await ctx.send_message(self._reaction_request(host_id=other_host), target_id=other_host)
 
+    def _last_utterance_text(self) -> str:
+        """Extract the plain text from the most recent log entry."""
+        if not _rec.recording_log:
+            return ""
+        last = _rec.recording_log[-1]
+        m = re.search(r'text:\s*"(.*?)"', last, re.DOTALL)
+        return m.group(1).strip() if m else ""
+
     async def _advance(self, next_speaker: str, next_listener: str, ctx: WorkflowContext) -> None:
         """After a reaction: check with producer if due, otherwise send speech turn."""
         if _rec.session_done:
+            await self._finish(ctx)
+            return
+
+        # Hard stop: if elapsed words exceed 110% of the target duration, end immediately
+        # rather than waiting for the producer to (possibly) defer again.
+        total_words = 0
+        for entry in _rec.recording_log:
+            m = re.search(r'text:\s*"(.*)"', entry)
+            if m:
+                total_words += len(m.group(1).split())
+        if total_words / _WORDS_PER_MINUTE >= _rec.target_duration_minutes * 1.1:
+            _rec.session_done = True
+            _run_logger.info("hard stop — elapsed words %d exceeds 110%% of target", total_words)
             await self._finish(ctx)
             return
 
@@ -566,6 +657,7 @@ class ChatRoomExecutor(Executor):
                             f"Segment '{_rec.current_segment}' — "
                             f"{_rec.turns_in_segment} utterances in "
                             f"(soft limit: {_rec.soft_turn_limit}). "
+                            f"{_timing_summary()} "
                             "Assess the conversation and decide: CONTINUE, TRANSITION, or REDIRECT. "
                             "Also include a ---SESSION-SUMMARY---...---END--- block with: "
                             "segments and topics covered so far, and 2-3 memorable phrases for later callbacks."
@@ -576,7 +668,11 @@ class ChatRoomExecutor(Executor):
                 target_id=self._producer_checkin_id,
             )
         else:
-            await ctx.send_message(self._speech_request(host_id=next_speaker), target_id=next_speaker)
+            last_text = self._last_utterance_text()
+            await ctx.send_message(
+                self._speech_request(host_id=next_speaker, last_utterance=last_text),
+                target_id=next_speaker,
+            )
 
     @handler
     async def handle_producer(self, direction: ProducerDirection, ctx: WorkflowContext) -> None:
@@ -594,8 +690,10 @@ class ChatRoomExecutor(Executor):
             _run_logger.info("producer roll-in received — starting first host")
             note = (
                 f"Producer (just now, to you in the studio):\n{text}\n\n"
-                "Respond naturally to the producer's opening direction — start the conversation. "
-                "Do NOT address or acknowledge the producer out loud. Just begin."
+                "Follow the producer's direction. If they tell you to welcome the listeners and "
+                "introduce the show, do that — address your audience directly. "
+                "Do NOT acknowledge or thank the producer (don't say 'great', 'thanks', or reference "
+                "the producer at all). Speak to your listeners, not to the booth."
             )
             await ctx.send_message(
                 self._speech_request(note=note, host_id=self._next_speaker),
@@ -611,8 +709,17 @@ class ChatRoomExecutor(Executor):
         if text.strip() == "CONTINUE":
             # Reset turns so we don't re-trigger the soft-limit check every exchange
             _rec.turns_in_segment = 0
+            last_text = self._last_utterance_text()
+            continue_note = (
+                f"[Producer check-in: the conversation is on track — keep going. "
+                f"Stay in the '{_rec.current_segment}' segment.]"
+            )
             await ctx.send_message(
-                self._speech_request(host_id=self._next_speaker),
+                self._speech_request(
+                    note=continue_note,
+                    host_id=self._next_speaker,
+                    last_utterance=last_text,
+                ),
                 target_id=self._next_speaker,
             )
             return

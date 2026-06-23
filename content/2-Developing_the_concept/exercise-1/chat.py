@@ -361,9 +361,9 @@ def build_show_context(cfg: ShowConfig) -> str:
     )
 
 
-def _build_host_agent(cfg: ShowConfig, host: HostConfig) -> str:
+def _build_host_agent(cfg: ShowConfig, host: HostConfig, template_name: str = "host.md") -> str:
     """Generate a fully fleshed-out host agent file from the template."""
-    template = (AGENT_TEMPLATES / "host.md").read_text()
+    template = (AGENT_TEMPLATES / template_name).read_text()
     return (
         template
         .replace("{{HOST_NAME}}", host.name)
@@ -402,6 +402,10 @@ def seed_agent_files(cfg: ShowConfig) -> list[str]:
         dest = AGENTS_DIR / f"host-{slug}.md"
         dest.write_text(show_header + _build_host_agent(cfg, host))
         written.append(str(dest.relative_to(WORKSPACE)))
+
+        recording_dest = AGENTS_DIR / f"host-{slug}-recording.md"
+        recording_dest.write_text(show_header + _build_host_agent(cfg, host, "recording-host.md"))
+        written.append(str(recording_dest.relative_to(WORKSPACE)))
 
     return written
 

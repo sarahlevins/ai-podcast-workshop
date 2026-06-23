@@ -7,7 +7,7 @@ See the TODO in workflow.py for the planned integration point.
 import sys
 from pathlib import Path
 
-WORKSPACE = Path(__file__).resolve().parents[5]
+WORKSPACE = Path(__file__).resolve().parents[4]
 if str(WORKSPACE) not in sys.path:
     sys.path.insert(0, str(WORKSPACE))
 

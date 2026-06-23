@@ -29,7 +29,10 @@ def headers() -> dict:
 def synthesize_to_file(ssml: str, out_file: str, timeout: int = 600) -> Path:
     url = f"{VOICE2_ENDPOINT.rstrip('/')}/cognitiveservices/v1"
     print('Generating text to speech with MAI2')
-    resp = requests.post(url, headers=headers(), data=ssml.encode('utf-8'), timeout=(30, timeout), stream=True)
+    # Use a 60-second per-chunk idle timeout: if the server stops sending data
+    # for 60s (e.g. chunked stream never sends the final empty chunk), we treat
+    # whatever has been received as the complete file.
+    resp = requests.post(url, headers=headers(), data=ssml.encode('utf-8'), timeout=(30, 60), stream=True)
     if not resp.ok:
         print(f"Status: {resp.status_code}, Body: {resp.text!r}")
     resp.raise_for_status()
@@ -37,11 +40,14 @@ def synthesize_to_file(ssml: str, out_file: str, timeout: int = 600) -> Path:
     p = OUT_DIR / out_file
     bytes_written = 0
     with p.open('wb') as f:
-        for chunk in resp.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-                bytes_written += len(chunk)
-                print(f"\rReceived {bytes_written:,} bytes", end='', flush=True)
+        try:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    bytes_written += len(chunk)
+                    print(f"\rReceived {bytes_written:,} bytes", end='', flush=True)
+        except requests.exceptions.ReadTimeout:
+            print(f"\nStream idle for 60s after {bytes_written:,} bytes — treating as complete")
     print()
     return p
 

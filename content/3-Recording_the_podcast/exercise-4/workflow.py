@@ -45,7 +45,6 @@ from agents.transcript_assembler import create_transcript_assembler  # noqa: E40
 
 from executors import (  # noqa: E402
     SHOW_CONTEXT_PATH,
-    _JSONL_SPAN_EXPORTER,
     _state,
 )
 from executors.recording import (  # noqa: E402
