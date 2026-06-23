@@ -22,7 +22,8 @@
         "python.analysis.indexing": true,
         "python.analysis.typeCheckingMode": "basic",
         "notebook.defaultKernel": "workshop",
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.terminal.useEnvFile": true
       }
     }
   },

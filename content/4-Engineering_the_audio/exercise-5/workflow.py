@@ -82,7 +82,7 @@ from agents import (  # noqa: E402
 
 SHOW_CONTEXT_PATH = WORKSPACE / "output" / "show_context.md"
 EPISODES_DIR      = WORKSPACE / "output" / "episodes"
-MAI2_SCRIPT       = WORKSPACE / "content" / "4-Engineering_the_audio" / "resources" / "mai-2.py"
+MAI2_SCRIPT       = WORKSPACE / "content" / "4-Engineering_the_audio" / "exercise-5" / "resources" / "mai-2.py"
 
 VALID_MODELS = {"mai-2", "vibe-voice"}
 
@@ -539,28 +539,40 @@ class WhisperExecutor(Executor):
             )
             transcription = result.stdout or whisper_txt.read_text()
         except FileNotFoundError:
-            # whisper-cli not available — try the openai-whisper Python package
+            # whisper-cli not available — try faster-whisper (no torch required)
             try:
-                import whisper as _whisper
+                from faster_whisper import WhisperModel
                 await ctx.yield_output(
-                    "whisper-cli not found. Falling back to openai-whisper Python package…"
+                    "whisper-cli not found. Falling back to faster-whisper…"
                 )
-                model = _whisper.load_model("base")
-                wresult = model.transcribe(str(audio_path))
-                lines = []
-                for seg in wresult.get("segments", []):
-                    lines.append(
-                        f"[{seg['start']:.2f} --> {seg['end']:.2f}]  {seg['text'].strip()}"
-                    )
-                transcription = "\n".join(lines) if lines else wresult.get("text", "")
+                fw_model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+                segments, _ = fw_model.transcribe(str(audio_path))
+                lines = [
+                    f"[{seg.start:.2f} --> {seg.end:.2f}]  {seg.text.strip()}"
+                    for seg in segments
+                ]
+                transcription = "\n".join(lines) if lines else "(no segments)"
             except ImportError:
-                await ctx.yield_output(
-                    "whisper-cli not found. Install it from:\n"
-                    "  https://github.com/vatsalaggarwal/whisper-cli\n"
-                    "Or install the Python package: pip install openai-whisper\n\n"
-                    "Continuing with empty transcription — timestamps will be estimated."
-                )
-                transcription = "(whisper not available — no timestamps)"
+                # fall back to openai-whisper if installed
+                try:
+                    import whisper as _whisper
+                    await ctx.yield_output(
+                        "faster-whisper not found. Falling back to openai-whisper…"
+                    )
+                    ow_model = _whisper.load_model("base")
+                    wresult = ow_model.transcribe(str(audio_path))
+                    lines = [
+                        f"[{seg['start']:.2f} --> {seg['end']:.2f}]  {seg['text'].strip()}"
+                        for seg in wresult.get("segments", [])
+                    ]
+                    transcription = "\n".join(lines) if lines else wresult.get("text", "")
+                except ImportError:
+                    await ctx.yield_output(
+                        "No whisper backend found. Install faster-whisper:\n"
+                        "  pip install faster-whisper\n\n"
+                        "Continuing with empty transcription — timestamps will be estimated."
+                    )
+                    transcription = "(whisper not available — no timestamps)"
         except subprocess.CalledProcessError as exc:
             await ctx.yield_output(
                 f"Whisper failed (exit {exc.returncode}):\n{exc.stderr}\n\n"
@@ -735,9 +747,11 @@ class MixPlanExecutor(Executor):
             commands  = step.get("commands", [])
             note      = step.get("note", "")
 
-            if note and "not yet available" in note.lower():
+            skip_phrases = ("not yet available", "missing files placeholder")
+            if (note and any(p in note.lower() for p in skip_phrases)) or \
+               (step_desc and any(p in step_desc.lower() for p in skip_phrases)):
                 await ctx.yield_output(
-                    f"Step {step_num} skipped — {step_desc}\n  Note: {note}"
+                    f"Step {step_num} skipped — {step_desc}\n  Note: {note or '(music files not present)'}"
                 )
                 continue
 
@@ -763,6 +777,30 @@ class MixPlanExecutor(Executor):
 
         final_output = plan.get("final_output", "audio/episode_preview.mp3")
         final_path   = _state.episode_dir / final_output
+
+        # If music steps were skipped, fall back to normalizing episode_speech.mp3 directly
+        if not final_path.exists():
+            speech_path = _state.episode_dir / "audio" / "episode_speech.mp3"
+            if speech_path.exists():
+                await ctx.yield_output(
+                    "Music/SFX files not present — creating speech-only preview…"
+                )
+                fallback_cmd = (
+                    f'ffmpeg -y -i "{speech_path}" '
+                    f'-af loudnorm=I=-16:TP=-1.5:LRA=11 -ac 1 "{final_path}"'
+                )
+                fb_result = subprocess.run(
+                    fallback_cmd, shell=True, capture_output=True, text=True,
+                    cwd=str(WORKSPACE), timeout=120,
+                )
+                if fb_result.returncode == 0:
+                    await ctx.yield_output(
+                        f"  ✓ Speech-only preview: {final_path.relative_to(WORKSPACE)}"
+                    )
+                else:
+                    await ctx.yield_output(
+                        f"  [WARN] Fallback normalization failed:\n  {fb_result.stderr[:200]}"
+                    )
 
         # Build transcript-with-files artifact
         ts_with_files = plan.get("transcript_with_files", {})

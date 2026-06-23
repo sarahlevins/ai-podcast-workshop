@@ -9,10 +9,11 @@ ENV PATH=/opt/venv/bin:$PATH
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
-# Install whisper-cli in an isolated venv to avoid openai version conflicts.
-RUN python -m venv /opt/whisper-venv \
-    && /opt/whisper-venv/bin/pip install --no-cache-dir whisper-cli==0.0.5 \
-    && ln -s /opt/whisper-venv/bin/whisper-cli /usr/local/bin/whisper-cli
+# faster-whisper uses CTranslate2 (not torch) so it works on Python 3.12
+# with no openai SDK version conflict. whisper-cli==0.0.5 was an OpenAI API
+# wrapper (needs old openai<0.28) and installs a binary called 'whisper' not
+# 'whisper-cli', so it was both the wrong tool and had the wrong binary name.
+RUN pip install --no-cache-dir faster-whisper
 
 # Install pinned Python dependencies into the venv at build time.
 COPY .devcontainer/requirements.txt /tmp/requirements.txt
