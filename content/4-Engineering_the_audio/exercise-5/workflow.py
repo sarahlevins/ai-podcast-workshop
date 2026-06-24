@@ -115,6 +115,73 @@ def _find_episode_dir(slug: str | None) -> Path:
     return sorted(dirs)[-1]
 
 
+# ── Audio utilities ───────────────────────────────────────────────────────────
+
+def _get_audio_duration(path: Path) -> float:
+    r = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        capture_output=True, text=True,
+    )
+    return float(r.stdout.strip())
+
+
+def _ts_to_secs(ts: str) -> float:
+    """'MM:SS.mmm' → float seconds."""
+    m, s = ts.split(":")
+    return float(m) * 60 + float(s)
+
+
+def _secs_to_ts(secs: float) -> str:
+    """float seconds → 'MM:SS.mmm'."""
+    m = int(secs // 60)
+    return f"{m:02d}:{secs - m * 60:06.3f}"
+
+
+def _find_in_whisper(whisper_text: str, search: str) -> float | None:
+    """Return the start-time (seconds) of the first whisper segment whose
+    text overlaps significantly with *search*. Returns None if not found."""
+    needles = set(search.lower().split())
+    if not needles:
+        return None
+    for line in whisper_text.splitlines():
+        m = re.match(r"\[(\d+\.\d+) --> \d+\.\d+\]\s+(.*)", line)
+        if not m:
+            continue
+        seg_words = set(m.group(2).lower().split())
+        if len(needles & seg_words) >= max(1, len(needles) // 3):
+            return float(m.group(1))
+    return None
+
+
+def _db_to_linear(db: float) -> float:
+    return 10 ** (db / 20)
+
+
+def _generate_synthetic_music(cue_type: str, duration: float, output_path: Path) -> None:
+    """Write a synthetic audio placeholder using ffmpeg built-ins."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    dur = max(0.5, duration)
+    if cue_type in ("intro", "outro"):
+        fade_out_st = max(0, dur - 2)
+        af = f"afade=t=in:st=0:d=1,afade=t=out:st={fade_out_st}:d=2,volume=0.4"
+        freq = 330
+    elif cue_type == "bed":
+        af = "volume=0.03"
+        freq = 220
+    elif cue_type == "sting":
+        af = f"afade=t=out:st={max(0, dur - 0.3)}:d=0.3,volume=0.6"
+        freq = 880
+    else:  # sfx
+        af = f"afade=t=out:st={max(0, dur - 0.2)}:d=0.2,volume=0.5"
+        freq = 660
+    cmd = (
+        f'ffmpeg -y -f lavfi -i "sine=frequency={freq}:duration={dur}" '
+        f'-af "{af}" -ac 1 -ar 44100 "{output_path}"'
+    )
+    subprocess.run(cmd, shell=True, capture_output=True, cwd=str(WORKSPACE))
+
+
 # ── Shared pipeline state ─────────────────────────────────────────────────────
 
 @dataclass
@@ -675,6 +742,59 @@ class TimestampedTranscriptSaveExecutor(Executor):
             )
             return
 
+        # ── Timestamp validation ──────────────────────────────────────────────
+        # Guard against the Audio Technician assigning timestamps beyond the
+        # actual audio file duration (a common hallucination for later utterances).
+        if _state.audio_path and _state.audio_path.exists():
+            audio_dur = _get_audio_duration(_state.audio_path)
+            utterances = ts_transcript.get("utterances", [])
+            fixed: list[str] = []
+            prev_end = 0.0
+
+            for utt in utterances:
+                ts = utt.setdefault("timestamps", {})
+                start = _ts_to_secs(ts.get("start", "00:00.000"))
+                end   = _ts_to_secs(ts.get("end",   "00:00.000"))
+
+                if start >= audio_dur:
+                    # Utterance entirely outside audio — try whisper text search
+                    found = _find_in_whisper(
+                        _state.whisper_output, utt.get("text", "")[:80]
+                    )
+                    if found is not None:
+                        start = found
+                        end   = min(found + max(1.0, end - start), audio_dur)
+                    else:
+                        # Fallback: divide remaining audio equally among out-of-bounds utterances
+                        remaining = sum(
+                            1 for u in utterances
+                            if _ts_to_secs(
+                                u.get("timestamps", {}).get("start", "00:00.000")
+                            ) >= audio_dur
+                        )
+                        slice_dur = (audio_dur - prev_end) / max(remaining, 1)
+                        start = prev_end
+                        end   = min(prev_end + slice_dur, audio_dur)
+                    ts["start"]      = _secs_to_ts(start)
+                    ts["end"]        = _secs_to_ts(end)
+                    ts["confidence"] = "estimated"
+                    fixed.append(utt["id"])
+                elif end > audio_dur:
+                    ts["end"]        = _secs_to_ts(audio_dur)
+                    ts["confidence"] = "clamped"
+                    fixed.append(utt["id"])
+
+                prev_end = _ts_to_secs(ts["end"])
+
+            ts_transcript["total_duration"] = _secs_to_ts(audio_dur)
+
+            if fixed:
+                await ctx.yield_output(
+                    f"Timestamp fix ({len(fixed)} utterances clamped/re-estimated "
+                    f"— audio is {_secs_to_ts(audio_dur)}): {', '.join(fixed)}"
+                )
+        # ─────────────────────────────────────────────────────────────────────
+
         out_path = _state.episode_dir / "audio" / "timestamped-transcript.json"
         out_path.write_text(json.dumps(ts_transcript, indent=2))
 
@@ -712,7 +832,13 @@ class TimestampedTranscriptSaveExecutor(Executor):
 
 class MixPlanExecutor(Executor):
     """Receives the Audio Mixer's ffmpeg plan, saves it, then executes each
-    step's commands to produce the final preview audio."""
+    step's commands to produce the final preview audio.
+
+    Steps 3, 4, and 5 are overridden with deterministic Python implementations:
+      Step 3 — overlap-aware concat (no silence gap at overlap transitions)
+      Step 4 — synthetic music generation + real adelay/amix overlay commands
+      Step 5 — normalise the right input (with-music or speech-only)
+    """
 
     @handler
     async def process(self, response: AgentExecutorResponse, ctx: WorkflowContext) -> None:
@@ -735,28 +861,199 @@ class MixPlanExecutor(Executor):
             f"Steps: {len(plan.get('steps', []))}"
         )
 
-        # Ensure clips directory exists
         clips_dir = _state.episode_dir / "audio" / "clips"
         clips_dir.mkdir(parents=True, exist_ok=True)
 
-        # Execute each step's ffmpeg commands from within the workspace root
-        errors = []
+        # ── Pre-generate synthetic music files ────────────────────────────────
+        tf_cues   = plan.get("transcript_with_files", {}).get("music_cues", [])
+        orig_cues = {c["id"]: c for c in _state.music_plan.get("cues", [])}
+
+        await ctx.yield_output("Checking music/SFX files…")
+        for tf_cue in tf_cues:
+            cue_path = WORKSPACE / tf_cue["file"]
+            if cue_path.exists():
+                continue
+            orig     = orig_cues.get(tf_cue["id"], {})
+            cue_type = orig.get("type", "sfx")
+            ts       = tf_cue.get("timestamps", {})
+            dur = max(
+                0.5,
+                _ts_to_secs(ts.get("end",   "00:01.000"))
+                - _ts_to_secs(ts.get("start", "00:00.000")),
+            )
+            _generate_synthetic_music(cue_type, dur, cue_path)
+            await ctx.yield_output(
+                f"  ✓ Synthetic {cue_type}: {cue_path.name}"
+            )
+        # ─────────────────────────────────────────────────────────────────────
+
+        # Overlap pairs: {(overlaps_with_id, utterance_id)}
+        overlap_pairs = {
+            (o["overlaps_with"], o["utterance_id"])
+            for o in _state.overlap_manifest
+        }
+
+        # Track which file feeds into step 5
+        episode_speech_path = _state.episode_dir / "audio" / "episode_speech.mp3"
+        mix_input           = episode_speech_path   # updated after step 4
+
+        errors: list[str] = []
+
         for step in plan.get("steps", []):
             step_num  = step.get("step", "?")
             step_desc = step.get("description", "")
             commands  = step.get("commands", [])
-            note      = step.get("note", "")
-
-            skip_phrases = ("not yet available", "missing files placeholder")
-            if (note and any(p in note.lower() for p in skip_phrases)) or \
-               (step_desc and any(p in step_desc.lower() for p in skip_phrases)):
-                await ctx.yield_output(
-                    f"Step {step_num} skipped — {step_desc}\n  Note: {note or '(music files not present)'}"
-                )
-                continue
 
             await ctx.yield_output(f"Step {step_num}: {step_desc}")
 
+            # ── Step 3 override: overlap-aware concat ─────────────────────────
+            if step_num == 3 and "concatenate" in step_desc.lower():
+                # Collect valid (non-empty) base utterance clips, sorted
+                utt_clips = sorted(
+                    p for p in clips_dir.glob("u[0-9]*.mp3")
+                    if "_overlaid_" not in p.stem and p.stat().st_size > 1000
+                )
+                utt_ids = [p.stem for p in utt_clips]
+
+                if not utt_ids:
+                    await ctx.yield_output("  [WARN] No valid utterance clips found — skipping concat")
+                    continue
+
+                # Ensure silence clip exists
+                silence_path = clips_dir / "silence_200ms.mp3"
+                if not silence_path.exists():
+                    subprocess.run(
+                        'ffmpeg -y -f lavfi -i anullsrc=r=44100:cl=mono -t 0.2 '
+                        f'"{silence_path}"',
+                        shell=True, capture_output=True, cwd=str(WORKSPACE),
+                    )
+
+                # Build input list: omit silence gap at overlap transitions
+                inputs: list[Path] = []
+                for i, uid in enumerate(utt_ids):
+                    inputs.append(clips_dir / f"{uid}.mp3")
+                    if i < len(utt_ids) - 1:
+                        next_uid = utt_ids[i + 1]
+                        if (uid, next_uid) not in overlap_pairs:
+                            inputs.append(silence_path)
+
+                n          = len(inputs)
+                input_args = " ".join(f'-i "{p}"' for p in inputs)
+                filt       = "".join(f"[{j}:a]" for j in range(n)) + f"concat=n={n}:v=0:a=1"
+                out_cmd    = (
+                    f'ffmpeg -y {input_args} '
+                    f'-filter_complex "{filt}" -ac 1 "{episode_speech_path}"'
+                )
+                result = subprocess.run(
+                    out_cmd, shell=True, capture_output=True,
+                    text=True, cwd=str(WORKSPACE), timeout=300,
+                )
+                if result.returncode == 0:
+                    await ctx.yield_output(
+                        f"  ✓ Overlap-aware concat: {len(utt_ids)} clips "
+                        f"({sum(1 for i, u in enumerate(utt_ids[:-1]) if (u, utt_ids[i+1]) in overlap_pairs)} "
+                        f"seamless overlaps)"
+                    )
+                else:
+                    errors.append(f"Step 3 concat: {result.stderr[:200]}")
+                    await ctx.yield_output(f"  [WARN] Concat failed:\n  {result.stderr[:200]}")
+                continue
+            # ─────────────────────────────────────────────────────────────────
+
+            # ── Step 4 override: music overlay ────────────────────────────────
+            if step_num == 4 and "music" in step_desc.lower():
+                if not episode_speech_path.exists():
+                    await ctx.yield_output(
+                        "  [WARN] episode_speech.mp3 missing — skipping music overlay"
+                    )
+                    continue
+
+                current = episode_speech_path
+                for tf_cue in sorted(
+                    tf_cues,
+                    key=lambda c: _ts_to_secs(c["timestamps"]["start"]),
+                ):
+                    cue_file = WORKSPACE / tf_cue["file"]
+                    if not cue_file.exists():
+                        await ctx.yield_output(
+                            f"  [WARN] Music file missing: {tf_cue['file']} — skipping cue"
+                        )
+                        continue
+
+                    orig     = orig_cues.get(tf_cue["id"], {})
+                    vol      = _db_to_linear(orig.get("volume_db", -18))
+                    cue_ts   = tf_cue.get("timestamps", {})
+                    start_s  = _ts_to_secs(cue_ts.get("start", "00:00.000"))
+                    end_s    = _ts_to_secs(cue_ts.get("end",   "00:01.000"))
+                    cue_dur  = max(0.1, end_s - start_s)
+                    delay_ms = int(start_s * 1000)
+                    nxt      = _state.episode_dir / "audio" / f"episode_mix_{tf_cue['id']}.mp3"
+
+                    overlay_cmd = (
+                        f'ffmpeg -y -i "{current}" -i "{cue_file}" '
+                        f'-filter_complex '
+                        f'"[1:a]atrim=duration={cue_dur}[c];'
+                        f'[c]adelay={delay_ms}|{delay_ms}[cd];'
+                        f'[0:a][cd]amix=inputs=2:duration=first:weights=1 {vol:.4f}" '
+                        f'-ac 1 "{nxt}"'
+                    )
+                    res = subprocess.run(
+                        overlay_cmd, shell=True, capture_output=True,
+                        text=True, cwd=str(WORKSPACE), timeout=120,
+                    )
+                    if res.returncode == 0:
+                        current = nxt
+                        await ctx.yield_output(
+                            f"  ✓ Overlaid {orig.get('type','?')} cue {tf_cue['id']}"
+                        )
+                    else:
+                        errors.append(f"Step 4 cue {tf_cue['id']}: {res.stderr[:150]}")
+                        await ctx.yield_output(
+                            f"  [WARN] Cue {tf_cue['id']} overlay failed: {res.stderr[:150]}"
+                        )
+
+                if current != episode_speech_path:
+                    with_music = _state.episode_dir / "audio" / "episode_with_music.mp3"
+                    current.rename(with_music)
+                    mix_input = with_music
+                    await ctx.yield_output(
+                        f"  ✓ Music mix complete → {with_music.relative_to(WORKSPACE)}"
+                    )
+                continue
+            # ─────────────────────────────────────────────────────────────────
+
+            # ── Step 5 override: normalise correct input ───────────────────────
+            if step_num == 5 and "normalize" in step_desc.lower():
+                final_output = plan.get("final_output", "audio/episode_preview.mp3")
+                final_path = (
+                    WORKSPACE / final_output
+                    if final_output.startswith("output/")
+                    else _state.episode_dir / "audio" / final_output
+                )
+                if not mix_input.exists():
+                    await ctx.yield_output(
+                        f"  [WARN] Input for normalisation not found ({mix_input.name}) — skipping"
+                    )
+                    continue
+                norm_cmd = (
+                    f'ffmpeg -y -i "{mix_input}" '
+                    f'-af loudnorm=I=-16:TP=-1.5:LRA=11 -ac 1 "{final_path}"'
+                )
+                res = subprocess.run(
+                    norm_cmd, shell=True, capture_output=True,
+                    text=True, cwd=str(WORKSPACE), timeout=180,
+                )
+                if res.returncode == 0:
+                    await ctx.yield_output(
+                        f"  ✓ Normalised preview: {final_path.relative_to(WORKSPACE)}"
+                    )
+                else:
+                    errors.append(f"Step 5 normalise: {res.stderr[:200]}")
+                    await ctx.yield_output(f"  [WARN] Normalisation failed:\n  {res.stderr[:200]}")
+                continue
+            # ─────────────────────────────────────────────────────────────────
+
+            # Default: run the AI-generated commands verbatim (steps 1, 2, …)
             for cmd in commands:
                 try:
                     result = subprocess.run(
@@ -776,31 +1073,11 @@ class MixPlanExecutor(Executor):
                     await ctx.yield_output(f"  [WARN] Command timed out: {cmd[:80]}")
 
         final_output = plan.get("final_output", "audio/episode_preview.mp3")
-        final_path   = _state.episode_dir / final_output
-
-        # If music steps were skipped, fall back to normalizing episode_speech.mp3 directly
-        if not final_path.exists():
-            speech_path = _state.episode_dir / "audio" / "episode_speech.mp3"
-            if speech_path.exists():
-                await ctx.yield_output(
-                    "Music/SFX files not present — creating speech-only preview…"
-                )
-                fallback_cmd = (
-                    f'ffmpeg -y -i "{speech_path}" '
-                    f'-af loudnorm=I=-16:TP=-1.5:LRA=11 -ac 1 "{final_path}"'
-                )
-                fb_result = subprocess.run(
-                    fallback_cmd, shell=True, capture_output=True, text=True,
-                    cwd=str(WORKSPACE), timeout=120,
-                )
-                if fb_result.returncode == 0:
-                    await ctx.yield_output(
-                        f"  ✓ Speech-only preview: {final_path.relative_to(WORKSPACE)}"
-                    )
-                else:
-                    await ctx.yield_output(
-                        f"  [WARN] Fallback normalization failed:\n  {fb_result.stderr[:200]}"
-                    )
+        final_path = (
+            WORKSPACE / final_output
+            if final_output.startswith("output/")
+            else _state.episode_dir / "audio" / final_output
+        )
 
         # Build transcript-with-files artifact
         ts_with_files = plan.get("transcript_with_files", {})
@@ -821,8 +1098,7 @@ class MixPlanExecutor(Executor):
             summary_lines.append(f"  Preview audio:    {final_path.relative_to(WORKSPACE)}")
         else:
             summary_lines.append(
-                f"  Preview audio:    {final_output} (not yet generated — "
-                "place music files and re-run mix steps)"
+                f"  Preview audio:    {final_output} (not generated — see warnings)"
             )
 
         if errors:

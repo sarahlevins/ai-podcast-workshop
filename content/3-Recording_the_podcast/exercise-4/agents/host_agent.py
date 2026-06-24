@@ -16,6 +16,7 @@ if str(WORKSPACE) not in sys.path:
 from utils.agents import create_agent, AgentOptions  # noqa: E402
 
 AGENTS_DIR = WORKSPACE / "output" / "agents"
+CONVERSATION_STYLE_FILE = AGENTS_DIR / "conversation-style.md"
 
 
 def _host_slug(name: str) -> str:
@@ -56,7 +57,15 @@ def create_recording_host_agents(show_context: str) -> list[tuple[str, object]]:
 
     Loads host-{slug}-recording.md instead of host-{slug}.md so hosts output
     structured ---UTTERANCE--- blocks during a live recording session.
+
+    If output/agents/conversation-style.md exists it is appended to every host's
+    instructions so all hosts share the same naturalness guidelines.
     """
+    conversation_style = (
+        "\n\n---\n\n" + CONVERSATION_STYLE_FILE.read_text()
+        if CONVERSATION_STYLE_FILE.exists()
+        else ""
+    )
     agents = []
     for name in parse_host_names(show_context):
         slug = _host_slug(name)
@@ -66,7 +75,7 @@ def create_recording_host_agents(show_context: str) -> list[tuple[str, object]]:
                 f"Recording host agent file not found: {host_file}\n"
                 f"Expected a -recording.md variant alongside the standard host file."
             )
-        instructions = show_context + "\n\n---\n\n" + host_file.read_text()
+        instructions = show_context + "\n\n---\n\n" + host_file.read_text() + conversation_style
         agent = create_agent(AgentOptions(
             name=f"Host_{name}_Recording",
             instructions=instructions,
