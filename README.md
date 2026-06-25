@@ -2,25 +2,31 @@
 
 Build an AI-powered podcast production pipeline using Microsoft Agent Framework.
 
-> **Browse this repo's docs in the browser at http://localhost:3000**
+> **Browse this repo's docs using [docsify(https://docsify.js.org/#/)]
 >
-> If not running, enable access to Docklify by running `python -m http.server 3000'
+> If you opened this repo in a Codespace, visit the forwarded address for the port `Workshop Docs (3000)
+> 
+> If you opened this repo in a Dev Container locally, go to [http://localhost:3000](http://localhost:3000)
+>
+> If you have opening this repo locally, install the [docsify-cli](https://docsify.js.org/#/quickstart), then run `docsify serve . --port 3000 --no-open` in your temrinal, and visit [http://localhost:3000](http://localhost:3000)
 
 ## Workshop Overview
 
-In this 60-minute hands-on workshop, you'll translate the real-world process of making a podcast into an AI orchestration workflow. You'll define AI agents with distinct roles, wire them together using the Microsoft Agent Framework SDK, and produce a podcast script from idea to audio.
+In this hands-on workshop, you'll translate the real-world process of making a podcast into an orchestration agent workflow. 
+
+You'll define AI agents with distinct roles, wire them together using the Microsoft Agent Framework SDK, and produce a podcast from idea to audio.
 
 ## Why build a podcast with AI?
 
 - Podcasts are a great tool for learning and relaxing. It would be handy to tailor-make them for yourself.
 - There are some cool AI tools out there we can explore by using them to make a podcast.
-- If you want to build an automation with AI, it is important to understand how to translate the real-world concept you're trying to automate into AI orchestration to make it more effective.
+- Understanding the nuances of translating a real world problem into an AI solution is a great skill to develop.
 
 ## What you'll leave with
 
-- Tools for how to write agent templates for different roles within an orchestration.
-- Understanding of how to translate a real-world workflow into an AI orchestration workflow.
-- Understanding of methods to orchestrate those agents using the Microsoft Agent Framework SDK in Python.
+- Knowledge and understanding of the Microsoft Agent Framework, which can be used to scaffold and orchestrate AI solutions
+- Understanding of how to translate a real-world workflow into an orchestrated AI workflow.
+- Knowledge of some of the latest voice generation models, what they require to run, and how they compare
 
 ## What this workshop is based on
 
@@ -30,7 +36,7 @@ This workshop builds on Microsoft's [Edge AI for Beginners](https://github.com/m
 
 | | Section | Time | Link |
 |---|---------|------|------|
-| 1 | Environment Setup | 10 min | [1-Environment_setup](content/1-Environment_setup/readme.md) |
-| 2 | Understanding the Workflow | 10 min | [2-Understanding_the_workflow](content/2-Understanding_the_workflow) |
-| 3 | Building the Workflow | 20 min | [3-Building_the_workflow](content/3-Building_the_workflow) |
-| 4 | Executing the Workflow | 15 min | [4-Executing-the-workflow](content/4-Executing-the-workflow) |
+| 1 | Environment Setup | 10 min | [Start here](content/1-Environment_setup/readme.md) |
+| 2 | Developing the concept | 20 min | [Jump to section](content/2-Developing_the_concept/readme.md) |
+| 3 | Recording the podcast | 30 min | [Jump to section](content/3-Recording_the_podcast/readme.md) |
+| 4 | Engineering the audio | 20 min | [Jump to section](content/4-Engineering_the_audio/readme.md) |

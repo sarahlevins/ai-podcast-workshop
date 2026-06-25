@@ -5,4 +5,6 @@ agent-framework-foundry==1.6.0
 
 python-dotenv==1.2.2
 ipykernel==7.2.0
+aiohttp==3.14.1
 azure-cognitiveservices-speech>=1.40.0
+faster-whisper
