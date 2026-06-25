@@ -4,33 +4,32 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "features": {
-    "ghcr.io/devcontainers/features/azure-cli:1": {}
-  },
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
         "ms-toolsai.jupyter",
-        "ms-toolsai.google-colab",
-        "anthropic.claude-code"
+        "ms-toolsai.google-colab"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/opt/venv/bin/python",
+        "python.venvPath": "/opt",
         "python.terminal.activateEnvironment": false,
         "python.analysis.indexing": true,
         "python.analysis.typeCheckingMode": "basic",
-        "notebook.defaultKernel": "workshop",
         "terminal.integrated.defaultProfile.linux": "bash",
         "python.terminal.useEnvFile": true
       }
     }
   },
-  "postCreateCommand": "pip install -e . && python -m ipykernel install --user --name workshop --display-name \"Workshop (Python 3.12)\"",
-  "postStartCommand": "python -m http.server 3000",
+  "postStartCommand": "docsify serve . --port 3000 --no-open",
   "forwardPorts": [3000, 8888],
   "portsAttributes": {
+    "3000": {
+      "label": "Workshop Docs",
+      "onAutoForward": "openBrowser"
+    },
     "8888": {
       "label": "Jupyter",
       "onAutoForward": "notify"

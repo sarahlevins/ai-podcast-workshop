@@ -97,22 +97,24 @@ def _create_foundry_agent(options: AgentOptions):
     from agent_framework.foundry import FoundryChatClient
 
     api_key = os.getenv("FOUNDRY_API_KEY")
-    if api_key:
-        from azure.core.credentials import AccessToken
-        from azure.core.credentials_async import AsyncTokenCredential
+    if not api_key:
+        raise EnvironmentError(
+            "FOUNDRY_API_KEY is not set. "
+            "Add it to your .env file: FOUNDRY_API_KEY=<your key from Azure AI Foundry>"
+        )
 
-        class _ApiKeyCredential(AsyncTokenCredential):
-            """Wraps an API key as a TokenCredential for Foundry."""
-            async def get_token(self, *scopes, **kwargs):
-                return AccessToken(api_key, 0)
-            async def close(self): pass
-            async def __aenter__(self): return self
-            async def __aexit__(self, *args): pass
+    from azure.core.credentials import AccessToken
+    from azure.core.credentials_async import AsyncTokenCredential
 
-        credential = _ApiKeyCredential()
-    else:
-        from azure.identity import AzureCliCredential
-        credential = AzureCliCredential()
+    class _ApiKeyCredential(AsyncTokenCredential):
+        """Wraps an API key as a TokenCredential for Foundry."""
+        async def get_token(self, *scopes, **kwargs):
+            return AccessToken(api_key, 0)
+        async def close(self): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+
+    credential = _ApiKeyCredential()
 
     client = FoundryChatClient(
         project_endpoint=os.getenv("FOUNDRY_PROJECT_ENDPOINT"),

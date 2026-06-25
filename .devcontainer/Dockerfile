@@ -7,7 +7,16 @@ ENV VIRTUAL_ENV=/opt/venv
 ENV PATH=/opt/venv/bin:$PATH
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js LTS and docsify-cli for the workshop docs server
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g docsify-cli \
+    && rm -rf /var/lib/apt/lists/*
 
 # faster-whisper uses CTranslate2 (not torch) so it works on Python 3.12
 # with no openai SDK version conflict. whisper-cli==0.0.5 was an OpenAI API
@@ -19,6 +28,11 @@ RUN pip install --no-cache-dir faster-whisper
 COPY .devcontainer/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Install the workshop utility package into the venv image layer.
+COPY pyproject.toml /tmp/pkg/pyproject.toml
+COPY utils/ /tmp/pkg/utils/
+RUN pip install --no-cache-dir /tmp/pkg/
 
 # Register the venv as a named Jupyter kernel so notebooks pick it up by default.
 RUN python -m ipykernel install --sys-prefix --name workshop --display-name "Workshop (Python 3.12)"
