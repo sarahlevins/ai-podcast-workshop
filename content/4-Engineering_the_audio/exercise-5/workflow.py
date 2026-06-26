@@ -1176,11 +1176,16 @@ class MixPlanExecutor(Executor):
         plan_path.write_text(json.dumps(plan, indent=2))
         await ctx.yield_output(
             f"Mix plan saved: {plan_path.relative_to(WORKSPACE)}\n"
-            f"Steps: {len(plan.get('steps', []))}"
+            f"Steps: {len(plan.get('steps', []))}\n"
+            f"Final output: {plan.get('final_output')}"
         )
 
         clips_dir = _state.mix_dir / "clips"
         clips_dir.mkdir(parents=True, exist_ok=True)
+
+        await ctx.yield_output(
+            f"Mix executor diagnostics: use_default_mix_commands={len(plan.get('steps', [])) != 5}"
+        )
 
         # ── Pre-generate synthetic music files ────────────────────────────────
         tf_cues   = plan.get("transcript_with_files", {}).get("music_cues", [])
@@ -1216,6 +1221,11 @@ class MixPlanExecutor(Executor):
         mix_input           = episode_speech_path   # updated after step 4
         use_default_mix_commands = len(plan.get("steps", [])) != 5
 
+        await ctx.yield_output(
+            f"Mix executor start: episode_speech_path={episode_speech_path.relative_to(WORKSPACE)} "
+            f"exists={episode_speech_path.exists()}"
+        )
+
         errors: list[str] = []
 
         for step in plan.get("steps", []):
@@ -1233,6 +1243,11 @@ class MixPlanExecutor(Executor):
                     if "_overlaid_" not in p.stem and p.stat().st_size > 1000
                 )
                 utt_ids = [p.stem for p in utt_clips]
+
+                await ctx.yield_output(
+                    f"  Found {len(utt_ids)} utterance clips: {', '.join(utt_ids[:10])}"
+                    + (" (truncated)" if len(utt_ids) > 10 else "")
+                )
 
                 if not utt_ids:
                     await ctx.yield_output("  [WARN] No valid utterance clips found — skipping concat")
@@ -1288,6 +1303,12 @@ class MixPlanExecutor(Executor):
                     continue
 
                 current = episode_speech_path
+                await ctx.yield_output(
+                    f"  Music overlay start: current={current.relative_to(WORKSPACE)} exists={current.exists()}"
+                )
+                await ctx.yield_output(
+                    f"  Music overlay: {len(tf_cues)} cues found in transcript_with_files"
+                )
                 for tf_cue in sorted(
                     tf_cues,
                     key=lambda c: _ts_to_secs(c["timestamps"]["start"]),
@@ -1350,6 +1371,12 @@ class MixPlanExecutor(Executor):
                     else _state.mix_dir / Path(final_output).name
                 )
                 final_path.parent.mkdir(parents=True, exist_ok=True)
+                await ctx.yield_output(
+                    f"  Normalisation: mix_input={mix_input.relative_to(WORKSPACE)} exists={mix_input.exists()}"
+                )
+                await ctx.yield_output(
+                    f"  Normalisation target: {final_path.relative_to(WORKSPACE)}"
+                )
                 if not mix_input.exists():
                     await ctx.yield_output(
                         f"  [WARN] Input for normalisation not found ({mix_input.name}) — skipping"
@@ -1368,8 +1395,10 @@ class MixPlanExecutor(Executor):
                         f"  ✓ Normalised preview: {final_path.relative_to(WORKSPACE)}"
                     )
                 else:
-                    errors.append(f"Step 5 normalise: {res.stderr[:200]}")
-                    await ctx.yield_output(f"  [WARN] Normalisation failed:\n  {res.stderr[:200]}")
+                    errors.append(f"Step 5 normalise: returncode={res.returncode} stderr={res.stderr[:200]}")
+                    await ctx.yield_output(
+                        f"  [WARN] Normalisation failed (returncode={res.returncode}):\n  {res.stderr[:200]}"
+                    )
                 continue
             # ─────────────────────────────────────────────────────────────────
 

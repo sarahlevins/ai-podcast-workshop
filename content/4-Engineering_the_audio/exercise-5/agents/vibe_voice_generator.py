@@ -12,7 +12,7 @@ if str(WORKSPACE) not in sys.path:
 
 from utils.agents import create_agent, AgentOptions  # noqa: E402
 
-AGENTS_DIR = WORKSPACE / "4-Engineering_the_audio" / "exercise-5" / "_resources" / "agent-templates" 
+AGENTS_DIR = WORKSPACE / "content" / "4-Engineering_the_audio" / "exercise-5" / "_resources" / "agent-templates" 
 
 def create_vibe_voice_generator(show_context: str):
     role_def = (AGENTS_DIR / "vibe-voice-generator.md").read_text()
