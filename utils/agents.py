@@ -74,24 +74,6 @@ def _create_ollama_agent(options: AgentOptions):
     )
 
 
-def _create_github_copilot_agent(options: AgentOptions):
-    from agent_framework_github_copilot import GitHubCopilotAgent
-
-    default_options = {
-        "instructions": options.instructions,
-        **options.extra,
-    }
-
-    model = os.getenv("GITHUB_COPILOT_MODEL")
-    if model:
-        default_options["model"] = model
-
-    return GitHubCopilotAgent(
-        default_options=default_options,
-        tools=options.tools or None,
-    )
-
-
 def _create_foundry_agent(options: AgentOptions):
     from agent_framework import Agent
     from agent_framework.foundry import FoundryChatClient

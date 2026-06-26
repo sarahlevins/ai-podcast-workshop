@@ -1,15 +1,4 @@
-# Building the Workflow (15 minutes)
-
-## Explore Agent Framework Dev UI
-
-The Dev UI lets you test agents interactively in a web interface.
-![Dev UI overview](images/devui-overview.png)
-
-- Chat with your agent in a browser
-- See tool calls and reasoning in real time
-- Test different prompts and instructions
-
-https://learn.microsoft.com/en-us/agent-framework/devui/?pivots=programming-language-python
+# Recording the Podcast
 
 ## Explore Agent Framework Workflows
 
@@ -59,7 +48,22 @@ workflow = (
 )
 ```
 
-## Exercise: Generate your first podcast script using a Workflow in Dev UI
+## Exercise 3: Build a simple workflow
+
+Learn about Agent Framework workflows using the [simple-workflow notebook](./exercise-3/simple-workflow.ipynb).
+
+## Explore Agent Framework Dev UI
+
+The Dev UI lets you test agents interactively in a web interface.
+![Dev UI overview](images/devui-overview.png)
+
+- Chat with your agent in a browser
+- See tool calls and reasoning in real time
+- Test different prompts and instructions
+
+https://learn.microsoft.com/en-us/agent-framework/devui/?pivots=programming-language-python
+
+## Exercise 4: Generate your first podcast script using a Workflow in Dev UI
 
 Run the workflow in the Dev UI using the following command
 

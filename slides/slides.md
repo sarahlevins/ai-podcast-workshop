@@ -16,7 +16,7 @@ Build an AI-powered podcast pipeline with Microsoft Agent Framework
 
 <div class="pt-12">
   <span class="px-2 py-1 rounded bg-white bg-opacity-10">
-    Agent Camp · Microsoft HQ · 2 May 2026
+    Agent Con · UWA · 26 June 2026
   </span>
 </div>
 
@@ -40,11 +40,11 @@ layout: center
 | | Section | Time |
 |---|---------|------|
 | 1 | Welcome & intro | 5 min |
-| 2 | What we're building | 5 min |
+| 2 | What we're building | 10 min |
 | 3 | Environment setup | 10 min |
-| 4 | Understanding the workflow | 10 min |
-| 5 | Building the workflow | 20 min |
-| 6 | Generating the audio | 20 min |
+| 4 | Developing the concept | 15 min |
+| 5 | Recording the podcast | 20 min |
+| 6 | Generating the audio | 15 min |
 | 7 | Wrap-up & cleanup | 5 min |
 
 <!--
@@ -64,7 +64,7 @@ layout: intro
 
 - Software engineer @ Microsoft — working on **Clipchamp**, Office's video editor
 - I like building with AI agents and breaking them in interesting ways
-- Podcast nerd — I run a lot to celebrity interview podcasts
+- I find it hard to find podcast I like - but the ones I like, I love
 
 </div>
 
@@ -92,7 +92,7 @@ layout: section
 
 # 1. What we're building
 
-Your podcast idea → a real audio episode
+Your podcast idea → a real audio of an episode sample
 
 ---
 
@@ -103,14 +103,14 @@ By the end of the hour, you will have:
 <v-clicks>
 
 - A **podcast concept** of your own
-- A team of **AI agents** (producer, researcher, script writer, editor, publisher)
+- A team of **AI agents** (hosts, producer, researcher, audio engineer)
 - A **multi-agent workflow** that turns your idea into a full script
 - An actual **audio file** — two AI hosts having a conversation about your topic
 
 </v-clicks>
 
 <div v-click class="pt-8 text-center text-xl opacity-80">
-You'll leave with the artifacts. Take them home, tweak them, make weird podcasts.
+You'll leave with the artifacts. Take them home, tweak them, make weird things.
 </div>
 
 ---
@@ -133,8 +133,7 @@ finish inside a one-hour session.
 
 <div>
 
-So today we're swapping the local edge models for **Azure AI Foundry** (or
-Ollama running in the Codespace if you prefer), keeping the same agentic concepts.
+So today we're swapping the local edge models for **Azure AI Foundry**, but keeping the same agentic concepts.
 
 <div class="pt-4 p-4 rounded bg-blue-500 bg-opacity-10 border border-blue-500">
 
