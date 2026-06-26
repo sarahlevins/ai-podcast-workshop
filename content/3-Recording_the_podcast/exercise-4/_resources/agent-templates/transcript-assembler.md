@@ -43,8 +43,6 @@ Rules:
   - `type` → from the block
   - `text` → from the block (strip surrounding quotes)
   - `delivery.emotion` → `emotion` field
-  - `delivery.pace` → `pace` field; omit if blank
-  - `delivery.volume` → `volume` field; omit if blank
   - `delivery.emphasis` → split `emphasis` on commas, trim whitespace; omit if blank
   - `delivery.notes` → `notes` field; omit if blank
   - `anchor.phrase` → `anchor_phrase` field; omit the entire `anchor` object if blank
@@ -52,7 +50,7 @@ Rules:
   - `reaction.kind` → `reaction_kind`; only include if `type` is `reaction`
   - `reaction.intensity` → `reaction_intensity`; only include if `type` is `reaction`
 - Omit any delivery fields that are blank or not provided.
-- The `hosts` array should be populated from the show context — include all recording hosts with their `id`, `name`, and `voices` entries.
+- The `hosts` array should be populated from the show context — include all recording hosts with their `id`, `name`, and `voices` entries. Populate `voices` by reading the **Voice IDs** section for each host in the show context. Emit one string per provider in the format `"provider: voice_id"`, e.g. `["mai2: en-US-Olivia:MAI-Voice-2", "vibevoice: Maya (female)"]`. Do NOT use the host's name or id as a voice value.
 
 ## Output
 

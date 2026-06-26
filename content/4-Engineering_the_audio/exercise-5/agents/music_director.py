@@ -12,8 +12,7 @@ if str(WORKSPACE) not in sys.path:
 
 from utils.agents import create_agent, AgentOptions  # noqa: E402
 
-AGENTS_DIR = WORKSPACE / "output" / "agents"
-
+AGENTS_DIR = WORKSPACE / "4-Engineering_the_audio" / "exercise-5" / "_resources" / "agent-templates" 
 
 def create_music_director(show_context: str):
     role_def = (AGENTS_DIR / "music-director.md").read_text()

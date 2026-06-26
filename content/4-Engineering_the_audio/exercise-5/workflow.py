@@ -139,9 +139,68 @@ def _ts_to_secs(ts: str) -> float:
 
 
 def _secs_to_ts(secs: float) -> str:
-    """float seconds → 'MM:SS.mmm'."""
-    m = int(secs // 60)
-    return f"{m:02d}:{secs - m * 60:06.3f}"
+    """float seconds → 'MM:SS.mmm' or 'HH:MM:SS.mmm'."""
+    hours = int(secs // 3600)
+    minutes = int((secs % 3600) // 60)
+    seconds = secs - hours * 3600 - minutes * 60
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{seconds:06.3f}"
+    return f"{minutes:02d}:{seconds:06.3f}"
+
+
+def _normalize_timestamp_string(ts: str) -> str:
+    """Normalize a model-generated timestamp string to canonical ffmpeg-friendly form."""
+    if not isinstance(ts, str):
+        return ts
+    try:
+        secs = _ts_to_secs(ts)
+    except ValueError:
+        return ts
+    return _secs_to_ts(secs)
+
+
+def _normalize_mix_plan_paths(plan: dict, episode_dir: Path) -> None:
+    """Rewrite generated mix-plan paths to use audio-artifacts/mix and normalize plan timestamps."""
+    audio_prefix = f"output/episodes/{episode_dir.name}/audio/"
+    mix_prefix = f"output/episodes/{episode_dir.name}/audio-artifacts/mix/"
+
+    def rewrite_path(path: str) -> str:
+        return path.replace(audio_prefix, mix_prefix)
+
+    for step in plan.get("steps", []):
+        commands = step.get("commands", [])
+        step["commands"] = [rewrite_path(cmd) for cmd in commands]
+
+    tf = plan.get("transcript_with_files", {})
+    for utt in tf.get("utterances", []):
+        if "clip_file" in utt:
+            utt["clip_file"] = rewrite_path(utt["clip_file"])
+        ts = utt.get("timestamps", {})
+        if "start" in ts:
+            ts["start"] = _normalize_timestamp_string(ts["start"])
+        if "end" in ts:
+            ts["end"] = _normalize_timestamp_string(ts["end"])
+
+    for cue in tf.get("music_cues", []):
+        if "file" in cue:
+            cue["file"] = rewrite_path(cue["file"])
+        ts = cue.get("timestamps", {})
+        if "start" in ts:
+            ts["start"] = _normalize_timestamp_string(ts["start"])
+        if "end" in ts:
+            ts["end"] = _normalize_timestamp_string(ts["end"])
+
+    final_output = plan.get("final_output")
+    if isinstance(final_output, str) and final_output.startswith(audio_prefix):
+        plan["final_output"] = final_output.replace(audio_prefix, mix_prefix)
+
+
+def _ensure_ffmpeg_output_dirs(cmd: str) -> None:
+    """Create parent directories for any output/episodes path referenced in an ffmpeg command."""
+    for path_str in re.findall(r'output/episodes/[^\s"\']+', cmd):
+        path = Path(path_str.strip('"\''))
+        if path.suffix:
+            (WORKSPACE / path).parent.mkdir(parents=True, exist_ok=True)
 
 
 def _find_in_whisper(whisper_text: str, search: str) -> float | None:
@@ -1004,6 +1063,11 @@ class TimestampedTranscriptSaveExecutor(Executor):
 
             for utt in utterances:
                 ts = utt.setdefault("timestamps", {})
+                if "start" in ts:
+                    ts["start"] = _normalize_timestamp_string(ts["start"])
+                if "end" in ts:
+                    ts["end"] = _normalize_timestamp_string(ts["end"])
+
                 start = _ts_to_secs(ts.get("start", "00:00.000"))
                 end   = _ts_to_secs(ts.get("end",   "00:00.000"))
 
@@ -1107,6 +1171,7 @@ class MixPlanExecutor(Executor):
             return
 
         plan_path = _state.mix_dir / "mix-plan.json"
+        _normalize_mix_plan_paths(plan, _state.episode_dir)
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, indent=2))
         await ctx.yield_output(
@@ -1146,9 +1211,10 @@ class MixPlanExecutor(Executor):
             for o in _state.overlap_manifest
         }
 
-        # Track which file feeds into step 5
+        # Track which file feeds into step 5 / normalize.
         episode_speech_path = _state.mix_dir / "episode_speech.mp3"
         mix_input           = episode_speech_path   # updated after step 4
+        use_default_mix_commands = len(plan.get("steps", [])) != 5
 
         errors: list[str] = []
 
@@ -1214,7 +1280,7 @@ class MixPlanExecutor(Executor):
             # ─────────────────────────────────────────────────────────────────
 
             # ── Step 4 override: music overlay ────────────────────────────────
-            if step_num == 4 and "music" in step_desc.lower():
+            if step_num == 4 and "music" in step_desc.lower() and not use_default_mix_commands:
                 if not episode_speech_path.exists():
                     await ctx.yield_output(
                         "  [WARN] episode_speech.mp3 missing — skipping music overlay"
@@ -1276,13 +1342,14 @@ class MixPlanExecutor(Executor):
             # ─────────────────────────────────────────────────────────────────
 
             # ── Step 5 override: normalise correct input ───────────────────────
-            if step_num == 5 and "normalize" in step_desc.lower():
+            if "normalize" in step_desc.lower() and not use_default_mix_commands:
                 final_output = plan.get("final_output", "episode_preview.mp3")
                 final_path = (
                     WORKSPACE / final_output
                     if final_output.startswith("output/")
                     else _state.mix_dir / Path(final_output).name
                 )
+                final_path.parent.mkdir(parents=True, exist_ok=True)
                 if not mix_input.exists():
                     await ctx.yield_output(
                         f"  [WARN] Input for normalisation not found ({mix_input.name}) — skipping"
@@ -1309,6 +1376,7 @@ class MixPlanExecutor(Executor):
             # Default: run the AI-generated commands verbatim (steps 1, 2, …)
             for cmd in commands:
                 try:
+                    _ensure_ffmpeg_output_dirs(cmd)
                     result = subprocess.run(
                         cmd, shell=True, capture_output=True, text=True,
                         cwd=str(WORKSPACE), timeout=120,

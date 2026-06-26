@@ -75,7 +75,7 @@ SHOW_CONTEXT = SHOW_CONTEXT_PATH.read_text()
 # ── Agent templates ───────────────────────────────────────────────────────────
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-TEMPLATE_DIR = Path(__file__).parent.parent / "_resources" / "agent-templates"
+TEMPLATE_DIR = Path(__file__).parent / "_resources" / "agent-templates"
 AGENTS_DIR = PROJECT_ROOT / "output" / "agents"
 
 # ── Helpers ───────────────────────────────────────────────────────────

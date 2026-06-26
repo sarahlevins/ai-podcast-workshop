@@ -42,7 +42,7 @@ flowchart TD
     C --> E[Script Save]
     D --> F[Music Plan Save]
     E --> G[MAI-2 Audio Executor]
-    G --> H[Whisper]
+    G --> H[Transcribe audio<br>with Whisper]
     F --> I[Audio Tech Fan-In]
     H --> I
     I --> J[Audio Technician]
