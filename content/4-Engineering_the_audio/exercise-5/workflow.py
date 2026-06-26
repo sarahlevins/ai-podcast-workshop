@@ -28,17 +28,18 @@ Phases:
   5. Audio Mixer   → ffmpeg command plan JSON
   5a. Mix Executor → runs ffmpeg commands → final episode_preview.mp3
 
-Outputs (all within the episode directory):
-  artifacts/mai2/script.xml          (mai-2 mode)
-  artifacts/vibevoice/script.txt     (vibe-voice mode)
-  artifacts/overlap-manifest.json
-  audio/music-plan.json
-  audio/speech.mp3                   (generated audio — all utterances)
-  audio/whisper-transcript.txt
-  audio/timestamped-transcript.json
-  audio/mix-plan.json
-  audio/clips/                       (per-utterance clips created by mixer)
-  audio/episode_preview.mp3          (final output)
+Outputs (all within audio-artifacts/ inside the episode directory):
+  scripts/mai2/script.xml            (mai-2 mode)
+  scripts/vibevoice/script.txt       (vibe-voice mode)
+  scripts/overlap-manifest.json
+  scripts/music-plan.json
+  speech/speech.mp3                  (generated audio — all utterances)
+  whisper/whisper-transcript.txt
+  mix/timestamped-transcript.json
+  mix/mix-plan.json
+  mix/transcript-with-files.json
+  mix/clips/                         (per-utterance clips created by mixer)
+  mix/episode_preview.mp3            (final output)
 """
 
 import json
@@ -62,6 +63,7 @@ from agent_framework import (  # noqa: E402
     AgentExecutor,
     AgentExecutorRequest,
     AgentExecutorResponse,
+    AgentResponse,
     Executor,
     Message,
     WorkflowBuilder,
@@ -82,7 +84,7 @@ from agents import (  # noqa: E402
 
 SHOW_CONTEXT_PATH = WORKSPACE / "output" / "show_context.md"
 EPISODES_DIR      = WORKSPACE / "output" / "episodes"
-MAI2_SCRIPT       = WORKSPACE / "content" / "4-Engineering_the_audio" / "exercise-5" / "resources" / "mai-2.py"
+MAI2_SCRIPT       = WORKSPACE / "content" / "4-Engineering_the_audio" / "exercise-5" / "_resources" / "mai-2.py"
 
 VALID_MODELS = {"mai-2", "vibe-voice"}
 
@@ -127,8 +129,12 @@ def _get_audio_duration(path: Path) -> float:
 
 
 def _ts_to_secs(ts: str) -> float:
-    """'MM:SS.mmm' → float seconds."""
-    m, s = ts.split(":")
+    """'MM:SS.mmm' or 'HH:MM:SS.mmm' → float seconds."""
+    parts = ts.split(":")
+    if len(parts) == 3:
+        h, m, s = parts
+        return float(h) * 3600 + float(m) * 60 + float(s)
+    m, s = parts
     return float(m) * 60 + float(s)
 
 
@@ -206,8 +212,95 @@ class _PipelineState:
     whisper_output: str = ""
     whisper_ready: bool = False
 
+    # ── Output directory layout ───────────────────────────────────────────────
+    # audio-artifacts/
+    #   scripts/   — SSML/VibeVoice script, overlap manifest, music plan
+    #   speech/    — raw TTS audio
+    #   whisper/   — Whisper transcription
+    #   mix/       — timestamped transcript, mix plan, clips, final preview
+
+    @property
+    def artifacts_dir(self) -> Path:
+        return self.episode_dir / "audio-artifacts"
+
+    @property
+    def scripts_dir(self) -> Path:
+        return self.artifacts_dir / "scripts"
+
+    @property
+    def speech_dir(self) -> Path:
+        return self.artifacts_dir / "speech"
+
+    @property
+    def whisper_dir(self) -> Path:
+        return self.artifacts_dir / "whisper"
+
+    @property
+    def mix_dir(self) -> Path:
+        return self.artifacts_dir / "mix"
+
 
 _state = _PipelineState()
+
+
+# ── Resume helpers ────────────────────────────────────────────────────────────
+
+def _detect_model_from_artifacts(ep_dir: Path) -> str | None:
+    """Infer which TTS model was used by checking which script subdirectory exists."""
+    scripts_dir = ep_dir / "audio-artifacts" / "scripts"
+    if (scripts_dir / "mai2" / "script.xml").exists():
+        return "mai-2"
+    if (scripts_dir / "vibevoice" / "script.txt").exists():
+        return "vibe-voice"
+    return None
+
+
+def _load_state_for_resume(ep_dir: Path, model: str) -> None:
+    """Populate _state from every artifact file that already exists on disk."""
+    _state.episode_dir = ep_dir
+    _state.model = model
+
+    transcript_path = ep_dir / "transcript.json"
+    if transcript_path.exists():
+        _state.transcript = json.loads(transcript_path.read_text())
+
+    script_path = (
+        _state.scripts_dir / "mai2" / "script.xml"
+        if model == "mai-2"
+        else _state.scripts_dir / "vibevoice" / "script.txt"
+    )
+    if script_path.exists():
+        _state.script_path = script_path
+
+    manifest_path = _state.scripts_dir / "overlap-manifest.json"
+    if manifest_path.exists():
+        _state.overlap_manifest = json.loads(manifest_path.read_text())
+
+    music_plan_path = _state.scripts_dir / "music-plan.json"
+    if music_plan_path.exists():
+        _state.music_plan = json.loads(music_plan_path.read_text())
+        _state.music_plan_path = music_plan_path
+        _state.music_plan_ready = True
+
+    audio_path = _state.speech_dir / "speech.mp3"
+    if audio_path.exists():
+        _state.audio_path = audio_path
+
+    whisper_txt = _state.whisper_dir / "whisper-transcript.txt"
+    if whisper_txt.exists():
+        _state.whisper_output = whisper_txt.read_text()
+        _state.whisper_ready = True
+
+
+def _make_fake_agent_response(text: str) -> AgentExecutorResponse:
+    """Wrap plain text in an AgentExecutorResponse so executor @handlers that
+    expect one can be targeted directly during resume."""
+    msg = Message("assistant", [text])
+    return AgentExecutorResponse(
+        executor_id="resume",
+        agent_response=AgentResponse(messages=[msg]),
+        full_conversation=[msg],
+    )
 
 
 # ── Typed messages ────────────────────────────────────────────────────────────
@@ -256,19 +349,25 @@ class TranscriptLoaderExecutor(Executor):
     AND music director in parallel."""
 
     def __init__(self, id: str, voice_gen_id: str, music_director_id: str,
-                 slug: str | None, model: str | None):
+                 slug: str | None, model: str | None, resume: bool = False):
         super().__init__(id=id)
         self._voice_gen_id = voice_gen_id
         self._music_director_id = music_director_id
         self._slug = slug
         self._cli_model = model
+        self._resume = resume
 
     @handler
     async def start(self, request: AgentExecutorRequest, ctx: WorkflowContext) -> None:
         ep_dir = _find_episode_dir(self._slug)
+
+        if self._resume:
+            await self._do_resume(ep_dir, ctx)
+            return
+
         _state.episode_dir = ep_dir
 
-        transcript_path = ep_dir / "workflow-output" / "transcript.json"
+        transcript_path = ep_dir / "transcript.json"
         if not transcript_path.exists():
             await ctx.yield_output(
                 f"No transcript.json found at {transcript_path}.\n"
@@ -348,6 +447,157 @@ class TranscriptLoaderExecutor(Executor):
             target_id=self._music_director_id,
         )
 
+    async def _do_resume(self, ep_dir: Path, ctx: WorkflowContext) -> None:
+        detected_model = self._cli_model or _detect_model_from_artifacts(ep_dir)
+        if not detected_model:
+            await ctx.yield_output(
+                "Resume: no existing script artifacts found.\n"
+                "Run without --resume to start fresh."
+            )
+            return
+
+        _load_state_for_resume(ep_dir, detected_model)
+
+        mix_plan_path   = _state.mix_dir    / "mix-plan.json"
+        ts_path         = _state.mix_dir    / "timestamped-transcript.json"
+        whisper_path    = _state.whisper_dir / "whisper-transcript.txt"
+        audio_path      = _state.speech_dir  / "speech.mp3"
+        music_plan_path = _state.scripts_dir / "music-plan.json"
+
+        header = f"Resuming: {ep_dir.name} | Model: {detected_model}\n"
+
+        # ── Checkpoint: re-run ffmpeg from saved mix plan ─────────────────────
+        if mix_plan_path.exists():
+            await ctx.yield_output(
+                header + "Checkpoint 5/5 — mix plan exists: re-running ffmpeg execution"
+            )
+            await ctx.send_message(
+                _make_fake_agent_response(mix_plan_path.read_text()),
+                target_id="mix_plan",
+            )
+            return
+
+        # ── Checkpoint: re-run audio mixer LLM from timestamped transcript ────
+        if ts_path.exists():
+            await ctx.yield_output(
+                header + "Checkpoint 4/5 — timestamped transcript exists: re-running audio mixer"
+            )
+            original_json = json.dumps(_state.transcript, indent=2)
+            overlap_json  = json.dumps(_state.overlap_manifest, indent=2)
+            audio_rel     = (
+                str(_state.audio_path.relative_to(WORKSPACE))
+                if _state.audio_path else "(not found)"
+            )
+            ep_rel      = str(ep_dir.relative_to(WORKSPACE))
+            music_dir   = _state.mix_dir / "music"
+            music_files = (
+                sorted(str(p.relative_to(WORKSPACE)) for p in music_dir.glob("*"))
+                if music_dir.exists() else []
+            )
+            await ctx.send_message(
+                AgentExecutorRequest(
+                    messages=[Message(role="user", contents=[
+                        f"Timestamped transcript JSON:\n```json\n{ts_path.read_text()}\n```\n\n"
+                        f"Original transcript JSON:\n```json\n{original_json}\n```\n\n"
+                        f"Overlap manifest:\n```json\n{overlap_json}\n```\n\n"
+                        f"Generated audio file: {audio_rel}\n"
+                        f"Episode directory:    {ep_rel}\n"
+                        f"Music/SFX files available: "
+                        f"{music_files or ['(none yet — include commands but note missing files)']}\n\n"
+                        "Produce the ffmpeg mix plan JSON."
+                    ])],
+                    should_respond=True,
+                ),
+                target_id="audio_mixer",
+            )
+            return
+
+        # ── Checkpoint: re-run from speech audio (whisper + optional music) ───
+        if audio_path.exists():
+            music_missing = not music_plan_path.exists()
+            await ctx.yield_output(
+                header + "Checkpoint 3/5 — speech audio exists: re-running"
+                + (" whisper + music director" if music_missing else " whisper")
+            )
+
+            if whisper_path.exists():
+                await ctx.yield_output("  Whisper transcript already on disk — skipping whisper run")
+                await ctx.send_message(
+                    WhisperReady(
+                        transcription=_state.whisper_output,
+                        audio_path=audio_path,
+                    ),
+                    target_id="audio_tech_fan_in",
+                )
+            else:
+                await ctx.send_message(
+                    WhisperReady(transcription="", audio_path=audio_path),
+                    target_id="whisper",
+                )
+
+            if music_missing:
+                await ctx.send_message(
+                    AgentExecutorRequest(
+                        messages=[Message(role="user", contents=[
+                            f"Design the music and SFX plan for this episode.\n\n"
+                            f"Transcript JSON:\n\n{json.dumps(_state.transcript)}"
+                        ])],
+                        should_respond=True,
+                    ),
+                    target_id="music_director",
+                )
+            else:
+                await ctx.send_message(
+                    MusicPlanReady(plan=_state.music_plan, plan_path=music_plan_path),
+                    target_id="audio_tech_fan_in",
+                )
+            return
+
+        # ── Checkpoint: re-run audio generation from script ───────────────────
+        if _state.script_path and _state.script_path.exists():
+            music_missing    = not music_plan_path.exists()
+            audio_gen_target = "mai2_audio" if detected_model == "mai-2" else "vv_hitl"
+            script_content   = _state.script_path.read_text()
+            await ctx.yield_output(
+                header + "Checkpoint 2/5 — script exists: re-running audio generation"
+                + (" + music director" if music_missing else "")
+            )
+            await ctx.send_message(
+                AgentExecutorRequest(
+                    messages=[Message(role="user", contents=[
+                        f"Model: {detected_model}\n"
+                        f"Script path: {_state.script_path.relative_to(WORKSPACE)}\n"
+                        f"Script content:\n\n{script_content}\n\n"
+                        "Generate audio from this script."
+                    ])],
+                    should_respond=True,
+                ),
+                target_id=audio_gen_target,
+            )
+            if music_missing:
+                await ctx.send_message(
+                    AgentExecutorRequest(
+                        messages=[Message(role="user", contents=[
+                            f"Design the music and SFX plan for this episode.\n\n"
+                            f"Transcript JSON:\n\n{json.dumps(_state.transcript)}"
+                        ])],
+                        should_respond=True,
+                    ),
+                    target_id="music_director",
+                )
+            else:
+                await ctx.send_message(
+                    MusicPlanReady(plan=_state.music_plan, plan_path=music_plan_path),
+                    target_id="audio_tech_fan_in",
+                )
+            return
+
+        # ── No intermediate artifacts: run full workflow with detected model ───
+        await ctx.yield_output(
+            header + "Checkpoint 1/5 — no intermediate artifacts: starting full workflow"
+        )
+        await self._fan_out(json.dumps(_state.transcript), ctx)
+
 
 class ScriptSaveExecutor(Executor):
     """Saves the voice generator output (script file + overlap manifest).
@@ -365,18 +615,18 @@ class ScriptSaveExecutor(Executor):
 
         if _state.model == "mai-2":
             script_content = _extract_section(text, "===SCRIPT===", "===END_SCRIPT===")
-            artifact_dir   = ep_dir / "artifacts" / "mai2"
-            script_path    = artifact_dir / "script.xml"
+            script_dir     = _state.scripts_dir / "mai2"
+            script_path    = script_dir / "script.xml"
         else:
             script_content = _extract_section(text, "===SCRIPT===", "===END_SCRIPT===")
-            artifact_dir   = ep_dir / "artifacts" / "vibevoice"
-            script_path    = artifact_dir / "script.txt"
+            script_dir     = _state.scripts_dir / "vibevoice"
+            script_path    = script_dir / "script.txt"
 
         overlap_raw = _extract_section(
             text, "===OVERLAP_MANIFEST===", "===END_OVERLAP_MANIFEST==="
         )
 
-        artifact_dir.mkdir(parents=True, exist_ok=True)
+        script_dir.mkdir(parents=True, exist_ok=True)
         script_path.write_text(script_content.strip())
         _state.script_path = script_path
 
@@ -385,7 +635,7 @@ class ScriptSaveExecutor(Executor):
         except json.JSONDecodeError:
             _state.overlap_manifest = []
 
-        manifest_path = ep_dir / "artifacts" / "overlap-manifest.json"
+        manifest_path = _state.scripts_dir / "overlap-manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(_state.overlap_manifest, indent=2))
 
@@ -431,7 +681,7 @@ class MusicPlanSaveExecutor(Executor):
             return
 
         _state.music_plan = plan
-        plan_path = _state.episode_dir / "audio" / "music-plan.json"
+        plan_path = _state.scripts_dir / "music-plan.json"
         plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, indent=2))
         _state.music_plan_path = plan_path
@@ -465,7 +715,7 @@ class MAI2AudioExecutor(Executor):
             f"Script: {script_path.relative_to(WORKSPACE)}"
         )
 
-        audio_dir = ep_dir / "audio"
+        audio_dir = _state.speech_dir
         audio_dir.mkdir(parents=True, exist_ok=True)
         audio_path = audio_dir / "speech.mp3"
 
@@ -514,7 +764,7 @@ class VibeVoiceHITLExecutor(Executor):
     async def instruct(self, request: AgentExecutorRequest, ctx: WorkflowContext) -> None:
         ep_dir = _state.episode_dir
         script_path = _state.script_path
-        audio_path  = ep_dir / "audio" / "speech.mp3"
+        audio_path  = _state.speech_dir / "speech.mp3"
         audio_path.parent.mkdir(parents=True, exist_ok=True)
 
         instructions = (
@@ -561,7 +811,7 @@ class VibeVoiceHITLExecutor(Executor):
             await ctx.request_info(request_data=original_request, response_type=str)
             return
 
-        audio_path = _state.episode_dir / "audio" / "speech.mp3"
+        audio_path = _state.speech_dir / "speech.mp3"
         if not audio_path.exists():
             await ctx.yield_output(
                 f"No audio file found at {audio_path.relative_to(WORKSPACE)}.\n"
@@ -595,7 +845,8 @@ class WhisperExecutor(Executor):
             f"Running Whisper transcription on: {audio_path.relative_to(WORKSPACE)}"
         )
 
-        output_dir = _state.episode_dir / "audio"
+        output_dir = _state.whisper_dir
+        output_dir.mkdir(parents=True, exist_ok=True)
         whisper_txt = output_dir / "whisper-transcript.txt"
 
         try:
@@ -795,7 +1046,8 @@ class TimestampedTranscriptSaveExecutor(Executor):
                 )
         # ─────────────────────────────────────────────────────────────────────
 
-        out_path = _state.episode_dir / "audio" / "timestamped-transcript.json"
+        out_path = _state.mix_dir / "timestamped-transcript.json"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(json.dumps(ts_transcript, indent=2))
 
         await ctx.yield_output(
@@ -808,8 +1060,8 @@ class TimestampedTranscriptSaveExecutor(Executor):
         audio_rel        = str(_state.audio_path.relative_to(WORKSPACE))
         ep_rel           = str(_state.episode_dir.relative_to(WORKSPACE))
 
-        # List any music files already in the episode audio dir
-        music_dir  = _state.episode_dir / "audio" / "music"
+        # List any music files already present in the mix directory
+        music_dir   = _state.mix_dir / "music"
         music_files = sorted(str(p.relative_to(WORKSPACE)) for p in music_dir.glob("*")) \
             if music_dir.exists() else []
 
@@ -854,14 +1106,15 @@ class MixPlanExecutor(Executor):
             )
             return
 
-        plan_path = _state.episode_dir / "audio" / "mix-plan.json"
+        plan_path = _state.mix_dir / "mix-plan.json"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
         plan_path.write_text(json.dumps(plan, indent=2))
         await ctx.yield_output(
             f"Mix plan saved: {plan_path.relative_to(WORKSPACE)}\n"
             f"Steps: {len(plan.get('steps', []))}"
         )
 
-        clips_dir = _state.episode_dir / "audio" / "clips"
+        clips_dir = _state.mix_dir / "clips"
         clips_dir.mkdir(parents=True, exist_ok=True)
 
         # ── Pre-generate synthetic music files ────────────────────────────────
@@ -894,7 +1147,7 @@ class MixPlanExecutor(Executor):
         }
 
         # Track which file feeds into step 5
-        episode_speech_path = _state.episode_dir / "audio" / "episode_speech.mp3"
+        episode_speech_path = _state.mix_dir / "episode_speech.mp3"
         mix_input           = episode_speech_path   # updated after step 4
 
         errors: list[str] = []
@@ -987,7 +1240,7 @@ class MixPlanExecutor(Executor):
                     end_s    = _ts_to_secs(cue_ts.get("end",   "00:01.000"))
                     cue_dur  = max(0.1, end_s - start_s)
                     delay_ms = int(start_s * 1000)
-                    nxt      = _state.episode_dir / "audio" / f"episode_mix_{tf_cue['id']}.mp3"
+                    nxt      = _state.mix_dir / f"episode_mix_{tf_cue['id']}.mp3"
 
                     overlay_cmd = (
                         f'ffmpeg -y -i "{current}" -i "{cue_file}" '
@@ -1013,7 +1266,7 @@ class MixPlanExecutor(Executor):
                         )
 
                 if current != episode_speech_path:
-                    with_music = _state.episode_dir / "audio" / "episode_with_music.mp3"
+                    with_music = _state.mix_dir / "episode_with_music.mp3"
                     current.rename(with_music)
                     mix_input = with_music
                     await ctx.yield_output(
@@ -1024,11 +1277,11 @@ class MixPlanExecutor(Executor):
 
             # ── Step 5 override: normalise correct input ───────────────────────
             if step_num == 5 and "normalize" in step_desc.lower():
-                final_output = plan.get("final_output", "audio/episode_preview.mp3")
+                final_output = plan.get("final_output", "episode_preview.mp3")
                 final_path = (
                     WORKSPACE / final_output
                     if final_output.startswith("output/")
-                    else _state.episode_dir / "audio" / final_output
+                    else _state.mix_dir / Path(final_output).name
                 )
                 if not mix_input.exists():
                     await ctx.yield_output(
@@ -1072,16 +1325,16 @@ class MixPlanExecutor(Executor):
                     errors.append(f"Step {step_num}: {cmd} — timed out")
                     await ctx.yield_output(f"  [WARN] Command timed out: {cmd[:80]}")
 
-        final_output = plan.get("final_output", "audio/episode_preview.mp3")
+        final_output = plan.get("final_output", "episode_preview.mp3")
         final_path = (
             WORKSPACE / final_output
             if final_output.startswith("output/")
-            else _state.episode_dir / "audio" / final_output
+            else _state.mix_dir / Path(final_output).name
         )
 
         # Build transcript-with-files artifact
         ts_with_files = plan.get("transcript_with_files", {})
-        tf_path = _state.episode_dir / "audio" / "transcript-with-files.json"
+        tf_path = _state.mix_dir / "transcript-with-files.json"
         tf_path.write_text(json.dumps(ts_with_files, indent=2))
 
         summary_lines = [
@@ -1089,8 +1342,8 @@ class MixPlanExecutor(Executor):
             f"  Episode:          {_state.episode_dir.name}",
             f"  Model:            {_state.model}",
             f"  Script:           {_state.script_path.relative_to(WORKSPACE)}",
-            f"  Music plan:       {(_state.episode_dir / 'audio' / 'music-plan.json').relative_to(WORKSPACE)}",
-            f"  Timestamped tx:   {(_state.episode_dir / 'audio' / 'timestamped-transcript.json').relative_to(WORKSPACE)}",
+            f"  Music plan:       {(_state.scripts_dir / 'music-plan.json').relative_to(WORKSPACE)}",
+            f"  Timestamped tx:   {(_state.mix_dir / 'timestamped-transcript.json').relative_to(WORKSPACE)}",
             f"  Mix plan:         {plan_path.relative_to(WORKSPACE)}",
             f"  Tx with files:    {tf_path.relative_to(WORKSPACE)}",
         ]
@@ -1120,7 +1373,7 @@ def _extract_section(text: str, open_tag: str, close_tag: str) -> str:
 
 # ── Build the workflow ────────────────────────────────────────────────────────
 
-def build_workflow(slug: str | None = None, model: str | None = None):
+def build_workflow(slug: str | None = None, model: str | None = None, resume: bool = False):
     ssml_gen_agent  = create_ssml_voice_generator(SHOW_CONTEXT)
     vv_gen_agent    = create_vibe_voice_generator(SHOW_CONTEXT)
     music_dir_agent = create_music_director(SHOW_CONTEXT)
@@ -1163,7 +1416,7 @@ def build_workflow(slug: str | None = None, model: str | None = None):
     audio_gen_dispatch = AudioGenDispatch("audio_gen_dispatch")
 
     loader          = TranscriptLoaderExecutor(
-        "loader", "voice_gen_fanout", "music_director", slug=slug, model=model
+        "loader", "voice_gen_fanout", "music_director", slug=slug, model=model, resume=resume
     )
     script_save     = ScriptSaveExecutor("script_save", "audio_gen_dispatch",
                                          model or "")
@@ -1226,10 +1479,12 @@ def main():
     parser.add_argument("--model", type=str, default=None,
                         choices=list(VALID_MODELS),
                         help="TTS model: mai-2 or vibe-voice")
+    parser.add_argument("--resume", action="store_true",
+                        help="Resume from the most advanced existing checkpoint in the episode dir")
     args = parser.parse_args()
 
     global workflow
-    workflow = build_workflow(slug=args.episode, model=args.model)
+    workflow = build_workflow(slug=args.episode, model=args.model, resume=args.resume)
 
     logger.info("Audio Production Workflow — Section 4")
     logger.info("DevUI: http://localhost:8090")

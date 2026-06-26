@@ -4,8 +4,8 @@
 
 | Option | Description | Requirements | Setup Steps |
 |--------|-------------|--------------|--------------|
-| **Codespace (RECOMMENDED)**| Pre-built environment with code and models pre-installed. Just open and go. | GitHub account. GitHub spend may apply. | [Github Codespace](content/1-Environment_setup/_resources/codespace.md) |
-| **Local** | Fork and clone this repo, Open in VS Code in dev container or install requirements locally | Python 3.12+, ffmpeg, Azure subscription | [Local](content/1-Environment_setup/_resources/local.md) |
+| **Codespace (RECOMMENDED)**| Pre-built environment with code and models pre-installed. Just open and go. | GitHub account. GitHub spend may apply. | [Github Codespace](./_resources/codespace.md) |
+| **Local** | Fork and clone this repo, Open in VS Code in dev container or install requirements locally | Python 3.12+, ffmpeg, Azure subscription | [Local](./_resources/local.md) |
 
 ### 2. Choose a model provider
 
@@ -13,8 +13,8 @@ We'll be running agents via notebooks and scripts through the agent-framework, w
 
 | Provider | When to use it | Speed | `MODEL_PROVIDER` | What to configure in .env | Set up instuctions |
 |----------|----------------|-------|------------------|---------------------------|-------------------|
-| **Azure AI Foundry (RECOMMENDED)** | You have an Azure subscription and a deployed model. Best performance and the most production-like experience. | Fastest | `foundry` | `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `FOUNDRY_API_KEY` | [Azure AI Foundry](content/1-Environment_setup/_resources/azure_ai_foundry.md) |
-| **Ollama** | You have a model pulled locally, or you're using the prebuilt Codespace (models are baked in). Works fully offline but is the slowest option. | Slowest | `ollama` | `OLLAMA_HOST`, `OLLAMA_CHAT_MODEL_ID` | [Ollama](content/1-Environment_setup/_resources/ollama.md) |
+| **Azure AI Foundry (RECOMMENDED)** | You have an Azure subscription and a deployed model. Best performance and the most production-like experience. | Fastest | `foundry` | `FOUNDRY_PROJECT_ENDPOINT`, `FOUNDRY_MODEL`, `FOUNDRY_API_KEY` | [Azure AI Foundry](./_resources/azure_ai_foundry.md) |
+| **Ollama** | You have a model pulled locally, or you're using the prebuilt Codespace (models are baked in). Works fully offline but is the slowest option. | Slowest | `ollama` | `OLLAMA_HOST`, `OLLAMA_CHAT_MODEL_ID` | [Ollama](./_resources/ollama.md) |
 
 ### 3. Test your setup
 

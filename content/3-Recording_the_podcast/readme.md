@@ -2,86 +2,102 @@
 
 ## Explore Agent Framework Workflows
 
-Agent Framework workflows allow you to orchestrate complex workflows combining agents and programmatic tools, without getting bogged down in infrastructure complexity.
+Agent Framework workflows let you orchestrate complex pipelines by wiring executors (nodes) together with typed edges. The framework handles routing, parallelism, and output collection — you define the graph, it runs it.
 
-![Agent Framework workflow overview](images/workflow-overview.png)
+![Agent Framework workflow overview](./_resources/images/workflow-overview.png)
 
 https://learn.microsoft.com/en-us/agent-framework/workflows/
 
 ### Key concepts
 
-- **Agents** — AI-powered executors that use LLMs to process messages.
-- **Executors** — Custom logic components (like the review step or saving to file).
-- **Edges** — Connections that route messages between executors.
-- **Human-in-the-loop** — The ReviewExecutor pauses the workflow for your approval.
-
-## Our AI Podcast Studio Workflow Architecture
-
-```
-ProducerAgent -> ResearchAgent -> ScriptWriterAgent -> EditorAgent -> Human Confirmation -> PublisherAgent -> ArtifactWriter
-                                                                            ^         |
-                                                                            |_________|
-                                                                          (rejection loop)
-```
-
-### Building the workflow in code
-
-```python
-from agent_framework import WorkflowBuilder, AgentExecutor
-
-# Wrap agents as executors
-search_executor = AgentExecutor(agent=search_agent, id="search_executor")
-script_executor = AgentExecutor(agent=script_agent, id="script_executor")
-
-# Custom executors for review and save
-review_executor = ReviewExecutor(id="review_executor")
-save_executor = SaveScriptExecutor(id="save_executor")
-
-# Wire them together
-workflow = (
-    WorkflowBuilder(start_executor=search_executor)
-    .add_edge(search_executor, script_executor)
-    .add_edge(script_executor, review_executor)
-    .add_edge(review_executor, script_executor)   # rejection loop
-    .add_edge(review_executor, save_executor)      # approval path
-    .build()
-)
-```
+- **Executors** — Processing nodes in the graph. Defined with the `@executor` decorator or by wrapping an agent with `AgentExecutor`.
+- **Edges** — Connections that route messages between executors. Added with `builder.add_edge(source, target)`.
+- **WorkflowBuilder** — Assembles executors into a runnable graph.
+- **Conditional edges** — Route messages down different paths at runtime based on message type.
+- **Fan-out** — Multiple edges from one source run all targets in parallel.
 
 ## Exercise 3: Build a simple workflow
 
-Learn about Agent Framework workflows using the [simple-workflow notebook](./exercise-3/simple-workflow.ipynb).
+Learn the workflow building blocks in the [simple-workflow notebook](./exercise-3/simple-workflow.ipynb).
+
+The notebook walks through:
+
+| Section | What you build |
+|---|---|
+| `@executor` + `WorkflowBuilder` | A 2-node linear workflow |
+| Streaming | The same workflow with streaming events |
+| `AgentExecutor` | An AI agent as a workflow node |
+| Research pipeline | Researcher → bridge executor → host agent |
+| Conditional edges | Topic classifier routes to different hosts by type |
+| Fan-out | Research output sent to both hosts in parallel |
+
+> **Kernel reminder** — open the kernel picker (top-right in VS Code) and select **Workshop (Python 3.12)** under *Jupyter Kernels*.
+
+## Our AI Podcast Studio Workflow Architecture
+
+Exercise 4 runs a full live-recording pipeline across four phases:
+
+```
+Phase 0: Researcher produces notes on the episode topic
+Phase 1: Host A and Host B each build a personal research digest (in parallel)
+Phase 2: Recording Producer plans segments and writes an opening question
+Phase 3: Recording loop — hosts converse utterance-by-utterance while the Producer manages transitions
+Phase 4: Transcript Assembler produces a structured transcript JSON
+```
+
+```mermaid
+flowchart TD
+    A([episode brief]) --> B[Researcher]
+    B --> C[Research Relay]
+    C --> D[Host A — digest]
+    C --> E[Host B — digest]
+    D --> F[Fan-In]
+    E --> F
+    F --> G[Recording Producer]
+    G --> H[Chat Room]
+    H -->|speak| I[Host A]
+    I -->|utterance| H
+    H -->|react| J[Host B]
+    J -->|utterance| H
+    H -->|every 3 utterances| K[Producer Check-In]
+    K -->|CONTINUE / TRANSITION / REDIRECT / DONE| H
+    H -->|session done| L[Transcript Assembler]
+    L --> M([transcript.json])
+```
 
 ## Explore Agent Framework Dev UI
 
-The Dev UI lets you test agents interactively in a web interface.
-![Dev UI overview](images/devui-overview.png)
+The Dev UI lets you run workflows interactively in a browser.
 
-- Chat with your agent in a browser
-- See tool calls and reasoning in real time
-- Test different prompts and instructions
+![Dev UI overview](./_resources/images/devui-overview.png)
+
+- Submit input to kick off the workflow
+- Watch each executor process its step in real time
+- See agent reasoning and tool calls
 
 https://learn.microsoft.com/en-us/agent-framework/devui/?pivots=programming-language-python
 
-## Exercise 4: Generate your first podcast script using a Workflow in Dev UI
+## Exercise 4: Record your podcast using a workflow in Dev UI
 
-Run the workflow in the Dev UI using the following command
+Run the workflow:
 
 ```bash
-python content/3-Building_the_workflow/code/2-podcast-creation-workflow/workflow.py
+python content/3-Recording_the_podcast/exercise-4/workflow.py
 ```
 
-This launches the workflow in a web interface where you can:
-- Submit a topic to kick off the pipeline
-- Watch each executor process its step
-- Approve or reject the generated script
-- See the final output saved to a file
+This launches the Dev UI at **http://localhost:8091** (it opens automatically).
 
-1. Expore the workflow on the left side of the screen using drag and drop
-2. Click the `Configure and Run` button
-![Configure and Run button](images/configure-and-run-button.png)
-3. Configure the workflow with the role as `user` (case sensitive) and the contents as the topic of the podcast episode you want a script for
-![Configure workflow input](images/configure-workflow-input.png)
-4. You will then be able to observe the agents working, and respond with confirmation where needed
-![Agents running in Dev UI](images/agents-running.png)
-5. When the editor and publisher ask for feedback and you're happy to proceed, ensure you follow its request and reply `yes` to continue
+Type an episode brief in the chat input to start the recording, for example:
+
+> *why cats sleep so much*
+
+Watch the agents work through the four phases. When the session finishes, outputs are written to:
+
+| File | What it is |
+|---|---|
+| `output/episodes/<date>-<slug>/transcript.json` | Structured transcript |
+| `output/episodes/<date>-<slug>/recording-artifacts/recording/utterances.json` | Every utterance captured |
+| `output/episodes/<date>-<slug>/recording-artifacts/recording/producer_brief.md` | Segment plan from the Producer |
+| `output/episodes/<date>-<slug>/recording-artifacts/recording/research_notes.md` | Researcher's notes |
+
+> See [how-it-works.md](./exercise-4/how-it-works.md) for a detailed walkthrough of each phase.

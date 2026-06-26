@@ -71,6 +71,7 @@ cp .env.example .env
 MODEL_PROVIDER=foundry
 FOUNDRY_API_KEY=<your-api-key>
 FOUNDRY_PROJECT_ENDPOINT=<your-project-endpoint>
+FOUNDRY_REGION=<azure-resource-region>
 ```
 
 ## 9. Find a model to deploy
@@ -83,7 +84,7 @@ In the Foundry portal, click **Explore models**.
 
 Pick a model that fits your subscription's pricing and quota. Larger models are more capable but cost more and take longer to deploy.
 
-For this workshop we recommend **`gpt-5.4-nano`**:
+For this workshop we're going to start with **`gpt-5.4-nano`**:
 
 1. Search for `gpt-5.4-nano`
 2. Select it

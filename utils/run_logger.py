@@ -1,5 +1,7 @@
 """Per-run logging utilities shared across podcast production workflows."""
 
+from __future__ import annotations
+
 import json
 import logging
 import uuid
@@ -26,12 +28,15 @@ class WorkflowRunLogger:
         self.run_id: str = ""
         self.run_log_dir: Path | None = None
 
-    def start(self, workspace: Path, runs_subdir: str, brief: str) -> None:
+    def start(self, workspace: Path, runs_subdir: str, brief: str, run_dir: Path | None = None) -> None:
         """Create a per-run log directory and attach a FileHandler for this run."""
         self.run_id = str(uuid.uuid4())
-        self.run_log_dir = workspace / "output" / "workflow-runs" / runs_subdir / self.run_id
+        if run_dir is not None:
+            self.run_log_dir = run_dir
+        else:
+            self.run_log_dir = workspace / "output" / "workflow-runs" / runs_subdir / self.run_id
+            (self.run_log_dir / "scripts").mkdir(parents=True, exist_ok=True)
         self.run_log_dir.mkdir(parents=True, exist_ok=True)
-        (self.run_log_dir / "scripts").mkdir(exist_ok=True)
 
         if self._file_handler:
             logging.getLogger().removeHandler(self._file_handler)
@@ -67,6 +72,16 @@ class WorkflowRunLogger:
     def create_span_exporter(self) -> "RunJsonlSpanExporter":
         """Return a span exporter that writes JSONL traces to this run's log dir."""
         return RunJsonlSpanExporter(self)
+
+
+def find_latest_run_dir(workspace: Path, runs_subdir: str) -> Path | None:
+    root = workspace / "output" / "workflow-runs" / runs_subdir
+    if not root.exists() or not root.is_dir():
+        return None
+    run_dirs = [p for p in root.iterdir() if p.is_dir()]
+    if not run_dirs:
+        return None
+    return max(run_dirs, key=lambda p: p.stat().st_mtime)
 
 
 class RunJsonlSpanExporter(SpanExporter):
@@ -124,3 +139,36 @@ class RunJsonlSpanExporter(SpanExporter):
 
     def shutdown(self) -> None:
         pass
+
+
+def summarize_token_usage_trace(trace_path: Path | str) -> dict[str, int]:
+    """Summarize GenAI token usage from a traces.jsonl file."""
+    trace_path = Path(trace_path)
+    if not trace_path.exists() or not trace_path.is_file():
+        return {}
+
+    totals = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "spans_with_usage": 0,
+    }
+
+    with trace_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            attributes = entry.get("attributes", {}) or {}
+            input_tokens = attributes.get("gen_ai.usage.input_tokens")
+            output_tokens = attributes.get("gen_ai.usage.output_tokens")
+            if input_tokens is not None or output_tokens is not None:
+                totals["spans_with_usage"] += 1
+            if isinstance(input_tokens, int):
+                totals["input_tokens"] += input_tokens
+            if isinstance(output_tokens, int):
+                totals["output_tokens"] += output_tokens
+
+    totals["total_tokens"] = totals["input_tokens"] + totals["output_tokens"]
+    return totals

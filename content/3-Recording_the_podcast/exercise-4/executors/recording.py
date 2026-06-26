@@ -274,22 +274,23 @@ class RecordingResearchExecutor(Executor):
 
 
 class RecordingResearchRelay(Executor):
-    """Receives researcher notes, stores them in _rec, then kicks off the producer brief."""
+    """Receives researcher notes, stores them in _rec, then fans out to all host digest executors."""
 
-    def __init__(self, id: str, brief_exec_id: str):
+    def __init__(self, id: str, host_digest_ids: list[str]):
         super().__init__(id=id)
-        self._brief_exec_id = brief_exec_id
+        self._host_digest_ids = host_digest_ids
 
     @handler
     async def relay(self, response: AgentExecutorResponse, ctx: WorkflowContext[EpisodeBriefInput]) -> None:
         _rec.research_notes = response.agent_response.text.strip()
         _log_artifact("recording/research_notes.md", _rec.research_notes)
-        _run_logger.info("research complete — %d chars", len(_rec.research_notes))
+        _run_logger.info("research complete — %d chars, fanning out to %d hosts", len(_rec.research_notes), len(self._host_digest_ids))
 
-        await ctx.send_message(
-            EpisodeBriefInput(brief=_rec.brief),
-            target_id=self._brief_exec_id,
-        )
+        for digest_id in self._host_digest_ids:
+            await ctx.send_message(
+                EpisodeBriefInput(brief=_rec.brief),
+                target_id=digest_id,
+            )
 
 
 class RecordingBriefExecutor(Executor):
@@ -434,6 +435,27 @@ class HostResearchDigestRelay(Executor):
             EpisodeBriefInput(brief=_rec.brief),
             target_id=self._next_id,
         )
+
+
+class HostDigestFanIn(Executor):
+    """Collects host digests from parallel digest relays and fires once all are done."""
+
+    def __init__(self, id: str, host_count: int, brief_exec_id: str):
+        super().__init__(id=id)
+        self._host_count = host_count
+        self._brief_exec_id = brief_exec_id
+        self._completed = 0
+
+    @handler
+    async def collect(self, request: EpisodeBriefInput, ctx: WorkflowContext[EpisodeBriefInput]) -> None:
+        self._completed += 1
+        _run_logger.info("digest fan-in — %d/%d complete", self._completed, self._host_count)
+        if self._completed >= self._host_count:
+            self._completed = 0
+            await ctx.send_message(
+                EpisodeBriefInput(brief=_rec.brief),
+                target_id=self._brief_exec_id,
+            )
 
 
 class HostRelay(Executor):
@@ -755,13 +777,18 @@ class ChatRoomExecutor(Executor):
     async def _finish(self, ctx: WorkflowContext) -> None:
         full_log = "\n\n---\n\n".join(_rec.recording_log)
         _run_logger.info("recording complete — %d utterances", _rec.utterance_count)
+
+        log_path = _state.episode_dir / "recording-log.md"
+        log_path.write_text(full_log)
+        _log_artifact("recording/full_recording_log.md", full_log)
+
         await ctx.send_message(
             AgentExecutorRequest(
                 messages=[Message(
                     role="user",
                     contents=[
                         "Here is the full recording log. Convert it to a podcast transcript "
-                        "conforming to schemas/podcast-transcript-v1.json.\n\n"
+                        "conforming to utils/podcast-transcript-v1.json.\n\n"
                         f"{full_log}"
                     ],
                 )],
@@ -783,14 +810,15 @@ class TranscriptAssemblyExecutor(Executor):
             transcript_json = re.sub(r"^```[a-z]*\n?", "", transcript_json)
             transcript_json = re.sub(r"\n?```$", "", transcript_json)
 
-        transcript_path = _state.episode_dir / "workflow-output" / "transcript.json"
+        transcript_path = _state.episode_dir / "transcript.json"
         transcript_path.write_text(transcript_json)
         _log_artifact("recording/transcript.json", transcript_json)
         _run_logger.info("transcript saved: %s", transcript_path.relative_to(WORKSPACE))
 
+        ep = _state.episode_dir.relative_to(WORKSPACE)
         await ctx.yield_output(
             f"Recording complete!\n\n"
-            f"  Transcript:  {transcript_path.relative_to(WORKSPACE)}\n"
-            f"  Utterances:  {_rec.utterance_count}\n"
-            f"  Log:         output/workflow-runs/script/<run-id>/recording/utterances.json"
+            f"  Transcript:    {ep}/transcript.json\n"
+            f"  Recording log: {ep}/recording-log.md\n"
+            f"  Utterances:    {_rec.utterance_count}\n"
         )

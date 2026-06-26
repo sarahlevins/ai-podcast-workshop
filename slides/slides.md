@@ -177,15 +177,15 @@ to see how the same workflow behaves on truly on-device models.
 
 ### <carbon-microphone class="inline" /> Audio generation
 
+- **MAI-2 Voice** — High-fidelity text-to-speech via SSML
 - **VibeVoice 1.5B / 7B** — open-source, expressive multi-speaker TTS
-- **Azure AI Speech** — Dragon HD voices via SSML
 
 <div class="pt-6"></div>
 
 ### <carbon-development class="inline" /> Dev environment
 
 - **GitHub Codespaces** (recommended)
-- or local Python 3.10+
+- or local Python 3.12+
 
 </div>
 
@@ -207,9 +207,8 @@ Everything you need lives here — clone, fork, or just follow along.
 </a>
 
 </div>
-
-<div class="pt-10 opacity-70">
-Open the README and follow along — every section links to its content folder.
+<div class="pt-4 opacity-70">
+Open the README.md in root and follow the instructions to Environment Setup
 </div>
 
 ---
@@ -242,8 +241,7 @@ layout: section
 ### <carbon-laptop /> Local
 
 - Fork & clone the repo
-- Python 3.10+
-- Use Azure AI Foundry **or** Ollama
+- Python 3.12+
 
 </div>
 
@@ -285,6 +283,21 @@ layout: section
 # 2. Understanding the workflow
 
 Translating a real-world process into agents
+
+---
+
+# Current AI Podcast generators
+
+<div class="overflow-auto text-xs">
+
+| Tool | Price | Audio Generation | Key Features | Sample |
+|------|-------|-----------------|--------------|--------|
+| **Google NotebookLM** | Free tier: 3 generations/day | One shot | Grounded in your uploaded sources; no hallucination; natural banter out of the box | <audio controls src="/audio/GoogleNotebookLLM.m4a"></audio> |
+| **Wondercraft** | From $25/mo (1,000 credits); 5-min draft ≈ 20 credits | One shot | Custom voices, brand-safe, multilingual, music & SFX mixing, publish direct to RSS | <audio controls src="/audio/Wondercraft.mp3"></audio> |
+| **Jellypod** | $45/mo; 7-day free trial (5k credits); 5-min episode ≈ 500 credits | Utterances combined | Fine-grained voice control per utterance, host persona editor, episode management dashboard | <audio controls src="/audio/Jellypod.mp3"></audio> |
+| **ElevenLabs** | Free trial: 10k credits; 30-sec demo ≈ small fraction of credits | Utterances combined | Best-in-class voice cloning, emotion/pacing controls per line, 30+ languages, API-first | <audio controls src="/audio/ElevenLabs.mp3"></audio> |
+
+</div>
 
 ---
 

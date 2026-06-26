@@ -8,10 +8,10 @@
   - [Ollama](content/1-Environment_setup/setup/ollama.md)
 
 - **Step 2 - Developing the concept**
-  - [Overview](content/2-Developing_the_concept/readme.md)
+  - [Overview](./content/2-Developing_the_concept/readme.md)
 
-- **Step 3 - Building the Workflow**
-  - [Overview](content/3-Building_the_workflow/readme.md)
+- **Step 3 - Recording the podcase**
+  - [Overview](./content/3-Recording_the_podcast/readme.md)
 
-- **Step 4 - Generating the Audio**
-  - [Overview](content/4-Executing-the-workflow/readme.md)
+- **Step 4 - Engineering the Audio**
+  - [Overview](./content/4-Engineering_the_audio/readme.md)

@@ -7,7 +7,7 @@ from .script_renderers import (
     render_vibevoice,
 )
 from .streaming import stream_response
-from .run_logger import WorkflowRunLogger, RunJsonlSpanExporter
+from .run_logger import WorkflowRunLogger, RunJsonlSpanExporter, summarize_token_usage_trace
 from .workspace import move_to_repo_root
 
 __all__ = [
@@ -21,5 +21,6 @@ __all__ = [
     "stream_response",
     "WorkflowRunLogger",
     "RunJsonlSpanExporter",
+    "summarize_token_usage_trace",
     "move_to_repo_root"
 ]

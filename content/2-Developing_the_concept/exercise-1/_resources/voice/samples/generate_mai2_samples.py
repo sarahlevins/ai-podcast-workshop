@@ -7,8 +7,8 @@ Run from the repo root:
     python content/2-Developing_the_concept/exercise/resources/voice-samples/generate_mai2_samples.py
 
 Reads credentials from environment (or a .env file in the repo root):
-    MAI_VOICE_2_ENDPOINT  — Azure MAI Voice 2 endpoint URL
-    MAI_VOICE_2_KEY       — Azure MAI Voice 2 subscription key
+    FOUNDRY_REGION  — Azure MAI Voice 2 endpoint URL
+    FOUNDRY_API_KEY       — Azure MAI Voice 2 subscription key
 
 Reference: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices#prebuilt-voices-1
 """
@@ -28,8 +28,8 @@ from utils import load_env  # noqa: E402
 
 load_env()
 
-ENDPOINT = os.getenv("MAI_VOICE_2_ENDPOINT", "")
-KEY = os.getenv("MAI_VOICE_2_KEY", "")
+REGION = os.getenv("FOUNDRY_REGION", "")
+KEY = os.getenv("FOUNDRY_API_KEY", "")
 
 OUT_BASE = Path(__file__).parent / "mai-2"
 
@@ -198,7 +198,7 @@ def _escape_xml(text: str) -> str:
 def synthesize(voice_id: str, lang: str, text: str, style: str | None, out_path: Path) -> bool:
     """Synthesize to out_path. Returns True on success, False on skippable failure."""
     ssml = _build_ssml(voice_id, lang, text, style)
-    url = f"{ENDPOINT.rstrip('/')}/cognitiveservices/v1"
+    url = f"https://{REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
     try:
         resp = requests.post(url, headers=_headers(), data=ssml.encode("utf-8"), timeout=180)
     except requests.RequestException as e:
@@ -222,9 +222,9 @@ def synthesize(voice_id: str, lang: str, text: str, style: str | None, out_path:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    if not ENDPOINT or not KEY:
+    if not REGION or not KEY:
         sys.exit(
-            "Error: MAI_VOICE_2_ENDPOINT and MAI_VOICE_2_KEY must be set "
+            "Error: FOUNDRY_API_KEY and FOUNDRY_REGION must be set "
             "(in .env or environment)."
         )
 

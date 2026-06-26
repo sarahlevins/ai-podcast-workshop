@@ -61,7 +61,7 @@ _JSONL_SPAN_EXPORTER = _run_logger.create_span_exporter()
 
 
 def _start_run_logging() -> None:
-    _run_logger.start(WORKSPACE, "script", _state.brief)
+    _run_logger.start(WORKSPACE, "script", _state.brief, run_dir=_state.episode_dir / "recording-artifacts")
 
 
 def _log_artifact(filename: str, content: str) -> None:
@@ -95,10 +95,7 @@ def make_episode_dir(brief: str) -> Path:
     slug = re.sub(r"[^a-z0-9]+", "-", brief.lower().strip())[:50].strip("-")
     today = date.today().isoformat()
     ep_dir = WORKSPACE / "output" / "episodes" / f"{today}-{slug}"
-    (ep_dir / "workflow-output").mkdir(parents=True, exist_ok=True)
-    (ep_dir / "artifacts" / "vibevoice").mkdir(parents=True, exist_ok=True)
-    (ep_dir / "artifacts" / "mai2").mkdir(parents=True, exist_ok=True)
-    (ep_dir / "audio" / "segments").mkdir(parents=True, exist_ok=True)
+    (ep_dir / "recording-artifacts").mkdir(parents=True, exist_ok=True)
     return ep_dir
 
 
